@@ -56,36 +56,17 @@ class Request extends StaticClass {
 		
 		// Handler en cours
 		$handler = self::getHandler();
+		$handler->init();
 		
 		// Vérification des droits
 		if ($handler->isAccessible())
 		{
-			$handler->denyAccess();
+			$handler->allowAccess();
 		}
 		else
 		{
 			$handler->denyAccess();
 		}
-	}
-	
-	/**
-	 * Renvoie la chaîne de paramètres GET assemblée
-	 * @param array|string $params une chaîne de paramètres ou un tableau de paramètres additionnels 
-	 * (sous la forme clé => valeur) pour compléter ou modifier ceux existant (facultatif, défaut : array())
-	 * @return string la chaîne de paramètres, avec le ? initial si nécessaire
-	 */
-	public static function getQueryString($params = array())
-	{
-		// Type des paramètres
-		if (is_string($params))
-		{
-			// Découpe
-			parse_str($params, $params);
-		}
-		
-		// Asssemblage
-		$string = http_build_query(array_merge(self::getGet(), $params));
-		return (strlen($string) > 0) ? '?'.$string : $string;
 	}
 
 	/**
@@ -301,6 +282,26 @@ class Request extends StaticClass {
 				return $default;
 			}
 		}
+	}
+	
+	/**
+	 * Renvoie la chaîne de paramètres GET assemblée
+	 * @param array|string $params une chaîne de paramètres ou un tableau de paramètres additionnels 
+	 * (sous la forme clé => valeur) pour compléter ou modifier ceux existant (facultatif, défaut : array())
+	 * @return string la chaîne de paramètres, avec le ? initial si nécessaire
+	 */
+	public static function getQueryString($params = array())
+	{
+		// Type des paramètres
+		if (is_string($params))
+		{
+			// Découpe
+			parse_str($params, $params);
+		}
+		
+		// Asssemblage
+		$string = http_build_query(array_merge(self::getGet(), $params));
+		return (strlen($string) > 0) ? '?'.$string : $string;
 	}
 	
 	/**

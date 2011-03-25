@@ -17,14 +17,12 @@ class DataHolderHolder implements ArrayAccess, Iterator {
 	public function __construct($data)
 	{
 		// Vérification
-		if (is_a($data, 'DataHolder') or is_subclass_of($data, 'DataHolder'))
-		{
-			$this->_data = $data;
-		}
-		else
+		if (!($data instanceof DataHolder))
 		{
 			throw new SCException('Données non valides', 2, 'Le paramètre fourni doit être de type DataHolder', $data);
 		}
+		
+		$this->_data = $data;
 	}
 	
 	/**

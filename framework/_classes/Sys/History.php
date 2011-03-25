@@ -9,7 +9,7 @@ class History extends StaticClass {
 	 */
 	public static function add()
 	{
-		if (!$page = Request::getPage())
+		if (!$page = Request::getHandler()->getPage())
 		{
 			return;
 		}
@@ -18,7 +18,7 @@ class History extends StaticClass {
 		if ($page->addToHistory == 1)
 		{
 			// Récupération
-			$query = Request::getBaseQuery();
+			$query = Request::getHandler()->getBaseQuery();
 			$list = Session::getCache('History', 'list', array());
 			
 			// On n'ajoute la page qu'une fois
@@ -53,7 +53,7 @@ class History extends StaticClass {
 	 */
 	public static function trim()
 	{
-		$query = Request::getBaseQuery();
+		$query = Request::getHandler()->getBaseQuery();
 		$list = Session::getCache('History', 'list', array());
 		
 		$max = count($list);
@@ -80,7 +80,7 @@ class History extends StaticClass {
 	public static function addParams()
 	{
 		$list = Session::getCache('History', 'list', array());
-		if (Request::getPage()->saveParams == 1 and isset($list[0]) and $list[0]['query'] == Request::getBaseQuery())
+		if (Request::getHandler()->getPage()->saveParams == 1 and isset($list[0]) and $list[0]['query'] == Request::getHandler()->getBaseQuery())
 		{
 			// Mise à jour des paramètres
 			$list[0]['params'] = Request::getParams();
@@ -114,7 +114,7 @@ class History extends StaticClass {
 	{
 		$index = -1;
 		$previous = self::getHistory($index);
-		$query = Request::getBaseQuery();
+		$query = Request::getHandler()->getBaseQuery();
 		while ($previous !== false and $previous['query'] == $query)
 		{
 			--$index;
@@ -135,6 +135,6 @@ class History extends StaticClass {
 		$previous = self::getPreviousHistory();
 		
 		// Redirection
-		Request::redirect(($previous !== false) ? self::buildUrl($previous['query'], $previous['params']) : $default);
+		Request::getHandler()->redirect(($previous !== false) ? self::buildUrl($previous['query'], $previous['params']) : $default);
 	}
 }

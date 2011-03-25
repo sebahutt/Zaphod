@@ -29,13 +29,13 @@ abstract class WebRequest {
 		$request = $this->getRequest();
 		
 		// Traitement
-		$request = removeTrailingSlash($request);
+		$request = removeInitialSlash(removeTrailingSlash($request));
 		if (strlen(URL_FOLDER) > 0 and strpos($request, URL_FOLDER) === 0)
 		{
 			$request = substr($request, strlen(URL_FOLDER));
 		}
 		$queryParts = explode('?', $request, 2);
-		$this->_query = '/'.array_shift($queryParts);
+		$this->_query = array_shift($queryParts);
 		$this->_baseQuery = $this->_query;
 		$this->_query .= Request::getQueryString();
 	}
@@ -67,8 +67,19 @@ abstract class WebRequest {
 		}
 		else
 		{
-			return $this->_baseQuery.self::getQueryString($params);
+			return $this->_baseQuery.Request::getQueryString($params);
 		}
+	}
+	
+	/**
+	 * Renvoie la requête complète, formattée pour le champ action d'un formulaire
+	 * @param array $params un tableau associatif des paramètres à ajouter/modifier par rapport à la requête originale (facultatif)
+	 * @return string la requête adaptée
+	 */
+	public function getQueryAction($params = array())
+	{
+		$query = $this->getQuery($params);
+		return strlen($query) ? $query : './';
 	}
 	
 	/**
@@ -78,29 +89,29 @@ abstract class WebRequest {
 	public function getBaseQuery()
 	{
 		return $this->_baseQuery;
-	}
+	}	
 	
 	/**
 	 * Envoie un header location de redirection
 	 * @param string $target la page à charger
 	 * @return void
-	 * @throws SCException
 	 */
 	public function redirect($target)
 	{
-		// Sécurisation
-		if (substr($target, 0, 1) === '#')
+		// Mode
+		if (preg_match('/^[0-9a-z]+:\//i', $target))
 		{
-			throw new SCException('Url de redirection non valide', 8, 'Url : '.$target);
+			header('Location: '.$target);
 		}
-
-		// Envoi
-		header('Location:'.$target);
+		else
+		{
+			header('Location: '.URL_BASE.$target);
+		}
 		exit();
 	}
 	
 	/**
-	 * Cherche si une page de redirection est définie ($redirect en GET ou POST), sinon retourne à la page précédente, 
+	 * Cherche si une page de redirection est définie ('redirect' en GET ou POST), sinon retourne à la page précédente, 
 	 * ou à la page par défaut si aucune page précédente n'est définie
 	 * @param string $default l'url par défaut si aucune page précédente n'est trouvée (défaut : accueil)
 	 * @param string $append une chaîne à rajouter à l'url de redirection si elle est définie
@@ -119,7 +130,7 @@ abstract class WebRequest {
 	}
 	
 	/**
-	 * Cherche si une page de redirection est définie ($redirect en GET ou POST), sinon va à la page par défaut
+	 * Cherche si une page de redirection est définie ('redirect' en GET ou POST), sinon va à la page par défaut
 	 * @param string $default l'url par défaut si aucune page de redirection n'est trouvée (défaut : accueil)
 	 * @param string $append une chaîne à rajouter à l'url de redirection si elle est définie
 	 * @return void

@@ -27,14 +27,13 @@ class DataHolder implements ArrayAccess, Iterator {
 	public function __construct($data)
 	{
 		// Vérification
-		if (is_array($data) or is_object($data))
-		{
-			$this->_data = (array) $data;
-		}
-		else
+		if (!is_array($data) and !is_object($data))
 		{
 			throw new SCException('Données non valides', 2, 'Le paramètre fourni doit être de type array ou object', $data);
 		}
+		
+		// Stockage
+		$this->_data = (array) $data;
 		
 		// Init
 		$this->_loadIteratorKeys();

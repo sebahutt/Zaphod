@@ -62,7 +62,7 @@ final class Env {
 	 * @return void
 	 * @throws SCException
 	 */
-	public function __clone()
+	private function __clone()
 	{
 		// Erreur
 		throw new SCException('Impossible de cloner la classe', 2, 'Classe Env non clonable');
@@ -80,6 +80,9 @@ final class Env {
 		{
 			// Session
 			session_start();
+			
+			// Supprime les avertissements sur la timezone pendant l'initialisation (la valeur définitive est affectée plus bas)
+			date_default_timezone_set(date_default_timezone_get());
 			
 			// Autoload
 			self::addAutoloadDirectory(PATH__CLASSES, true);

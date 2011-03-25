@@ -38,7 +38,7 @@ class Upload {
 	 */
 	public function isSuccessfullyUploaded()
 	{
-		return isset($_FILES[$this->_name]) and ($_FILES[$this->_name]['error'] === \UPLOAD_ERR_OK and is_uploaded_file($_FILES[$this->_name]['tmp_name']));
+		return isset($_FILES[$this->_name]) and ($_FILES[$this->_name]['error'] === UPLOAD_ERR_OK and is_uploaded_file($_FILES[$this->_name]['tmp_name']));
 	}
 	
 	/**

@@ -61,15 +61,6 @@ class DefaultControler
 	}
 	
 	/**
-	 * Indique si la requête se passe en Ajax
-	 * @return boolean la confirmation
-	 */
-	public function isAjax()
-	{
-		return (isset($_SERVER['HTTP_X_REQUESTED_WITH']) and strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
-	}
-	
-	/**
 	 * Construit la page
 	 * @return string le code final de la page
 	 */
@@ -80,7 +71,7 @@ class DefaultControler
 		
 		// Chargement du contenu
 		$ajaxPage = preg_replace('/\.php$/i', '.content.php', $this->_page->file);
-		if ($this->isAjax() and file_exists(PATH_BASE.$ajaxPage))
+		if (Request::isAjax() and file_exists(PATH_BASE.$ajaxPage))
 		{
 			require(PATH_BASE.$ajaxPage);
 		}

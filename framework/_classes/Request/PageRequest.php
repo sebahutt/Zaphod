@@ -34,10 +34,10 @@ abstract class PageRequest extends WebRequest implements iRequestHandler {
 	 */
 	protected $_queryParams;
 	/**
-	 * Indique si la requête utilise la réécriture d'URL
-	 * @var boolean
+	 * Chaîne de réécriture si existante, false sinon
+	 * @var string|boolean
 	 */
-	protected $_rewritten;
+	protected $_rewriteString;
 	
 	/**
 	 * Initialise la requête en cours, et prépare les données
@@ -76,7 +76,7 @@ abstract class PageRequest extends WebRequest implements iRequestHandler {
 		Request::clearGet('__action');
 		
 		// Chargement de la page
-		$this->_page = Page::getByUrl($request);
+		$this->_page = Page::getByUrl($this->getRequest());
 		if (!$this->_page)
 		{
 			$this->header404();
@@ -125,7 +125,8 @@ abstract class PageRequest extends WebRequest implements iRequestHandler {
 	{
 		if (!isset($this->_request))
 		{
-			$this->_request = ($this->_rewrite !== false) ? $this->_rewrite : parent::getRequest();
+			$rewriteString = $this->getRewriteString();
+			$this->_request = ($rewriteString !== false) ? $rewriteString : parent::getRequest();
 		}
 		
 		return $this->_request;
@@ -137,13 +138,13 @@ abstract class PageRequest extends WebRequest implements iRequestHandler {
 	 */
 	public function getRewriteString()
 	{
-		if (!isset($this->_rewrite))
+		if (!isset($this->_rewriteString))
 		{
-			$this->_rewrite = Request::getGET('__rewrite', false);
+			$this->_rewriteString = Request::getGET('__rewrite', false, false);
 			Request::clearGet('__rewrite');
 		}
 		
-		return $this->_rewrite;
+		return $this->_rewriteString;
 	}
 	
 	/**

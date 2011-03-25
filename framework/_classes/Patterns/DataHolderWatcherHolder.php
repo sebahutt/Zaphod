@@ -11,7 +11,7 @@ class DataHolderWatcherHolder extends DataHolderHolder
 	public function __construct($data)
 	{
 		// Vérification
-		if (!is_a($data, 'DataHolderWatcher') or !is_subclass_of($data, 'DataHolderWatcher'))
+		if (!($data instanceof DataHolderWatcher))
 		{
 			throw new SCException('Données non valides', 2, 'Le paramètre fourni doit être de type DataHolderWatcher', $data);
 		}
