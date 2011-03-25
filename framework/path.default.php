@@ -6,7 +6,8 @@
 	// Important ! Tous les chemins non vides doivent se terminer par un / pour être valides
 	
 	define('PATH_LOCAL',		dirname(PATH_SYSTEM).'/local/');	// Chemin des fichiers systèmes locaux
-	define('PATH_CONFIG',		PATH_LOCAL.'_config/');				// Dossier de configuration, à la racine du site
+	define('PATH_CACHE',		PATH_LOCAL.'_cache/');				// Dossier de cache
+	define('PATH_CONFIG',		PATH_LOCAL.'_config/');				// Dossier de configuration
 	define('PATH_CLASSES',		PATH_LOCAL.'_classes/');			// Dossier des classes
 	define('PATH_LANG',			PATH_LOCAL.'_lang/');				// Dossier des fichiers de langues
 	define('PATH_LOGS',			PATH_LOCAL.'_logs/');				// Dossier des fichiers de log

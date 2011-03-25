@@ -4,40 +4,10 @@
  */
 class Request extends StaticClass {
 	/**
-	 * Chaine originale de la requête
-	 * @var string
+	 * Handler de la requête en cours
+	 * @var PageRequest|CliRequest
 	 */
-	protected static $_query = '';
-	/**
-	 * Page chargée par la requête
-	 * @var Page
-	 */
-	protected static $_page = false;
-	/**
-	 * Controleur de la page chargée par la requête
-	 * @var DefaultControler
-	 */
-	protected static $_controler;
-	/**
-	 * Chaine originale de la requête, sans paramètres GET
-	 * @var string
-	 */
-	protected static $_baseQuery = '';
-	/**
-	 * Partie de la requête correspondant à l'url réelle de la page
-	 * @var string
-	 */
-	protected static $_pageQuery = '';
-	/**
-	 * Partie de la requête correspondant aux paramètres additionnels
-	 * @var string
-	 */
-	protected static $_paramQuery = '';
-	/**
-	 * Identifiants contenus dans la requête
-	 * @var array
-	 */
-	protected static $_queryParams = array();
+	protected static $_handler;
 	/**
 	 * Mode de la requête courante
 	 * @var int
@@ -49,15 +19,10 @@ class Request extends StaticClass {
 	 */
 	protected static $_protocol;
 	/**
-	 * Données d'actions pré-requête
-	 * @var array
+	 * Indique si la requête est en cours d'exécution
+	 * @var boolean
 	 */
-	protected static $_action = false;
-	/**
-	 * Données de la requête AJAX
-	 * @var array
-	 */
-	protected static $_ajax = false;
+	protected static $_running = false;
 	/**
 	 * Mode de requête CLI
 	 * @var int
@@ -80,246 +45,115 @@ class Request extends StaticClass {
 	 */
 	public static function initClass()
 	{
-		// Actions
-		if (self::issetParam('__action'))
+		// Effacement de l'utilisateur
+		if (isset($_GET['logout']) and $_GET['logout'] == 1)
 		{
-			// Récupération
-			self::$_action = self::getParam('__action');
-			
-			// Formattage et sécurisation
-			if (!is_array(self::$_action))
-			{
-				// Si valide
-				if (strlen(trim(self::$_action)) > 0)
-				{
-					self::$_action = array(self::$_action);
-				}
-				else
-				{
-					self::$_action = false;
-				}
-			}
-			elseif (count(self::$_action) == 0 or strlen(trim(self::$_action[0])) == 0)
-			{
-				self::$_action = false;
-			}
-		}
-		
-		// Ajax
-		if (self::issetParam('__ajax'))
-		{
-			// Récupération
-			self::$_ajax = self::getParam('__ajax');
-			
-			// Formattage et sécurisation
-			if (!is_array(self::$_ajax))
-			{
-				// Si valide
-				if (strlen(trim(self::$_ajax)) > 0)
-				{
-					self::$_ajax = array(self::$_ajax);
-				}
-				else
-				{
-					self::$_ajax = false;
-				}
-			}
-			elseif (count(self::$_ajax) == 0 or strlen(trim(self::$_ajax[0])) == 0)
-			{
-				self::$_ajax = false;
-			}
+			User::logOut();
 		}
 		
 		// Nettoyage
-		self::clearGet('rewriteLink');
-		self::clearGet('__action');
-		self::clearGet('__ajax');
 		self::clearGet('logout');
 		
-		// Requête en cours
-		$request = isset($_GET['rewriteLink']) ? trim($_GET['rewriteLink']) : '';
+		// Handler en cours
+		$handler = self::getHandler();
 		
-		// Nettoyage
-		$request = removeTrailingSlash($request);
-		if (strlen(URL_FOLDER) > 0 and strpos($request, URL_FOLDER) === 0)
+		// Vérification des droits
+		if ($handler->isAccessible())
 		{
-			$request = substr($request, strlen(URL_FOLDER));
-		}
-		$queryParts = explode('?', $request);
-		self::$_query = '/'.array_shift($queryParts);
-		self::$_baseQuery = self::$_query;
-		self::$_query .= self::getQueryString();
-		
-		// Chargement de la page
-		self::$_page = Page::getByUrl($request);
-		if (!self::$_page)
-		{
-			Request::header404();
-		}
-		
-		// Parties de la requête
-		self::$_pageQuery = '/'.self::$_page->getUrl();
-		self::$_paramQuery = removeInitialSlash(substr(self::$_baseQuery, strlen(self::$_pageQuery)));
-		
-		// Identifiants contenus dans la requête
-		self::$_queryParams = array();
-		$queryParts = array_reverse(explode('/', self::$_baseQuery));
-		$queryId = false;
-		foreach ($queryParts as $part)
-		{
-			if (strlen($part) > 0)
-			{
-				if (preg_match('/[0-9]+/', $part))
-				{
-					$queryId = intval($part);
-				}
-				elseif ($queryId !== false)
-				{
-					self::$_queryParams[$part] = $queryId;
-				}
-			}
-		}
-		
-		// Si retour en arrière
-		if (isset($_GET['__back']) and $_GET['__back'] == 1)
-		{
-			// Nettoyage de l'historique
-			History::trim();
-			self::clearGet('__back');
-		}
-	}
-	
-	/**
-	 * Renvoie la requête complète en cours
-	 * @param array $params un tableau associatif des paramètres à ajouter/modifier par rapport à la requête originale (facultatif)
-	 * @return string la requête
-	 */
-	public static function getQuery($params = array())
-	{
-		if (!is_array($params) or count($params) === 0)
-		{
-			return self::$_query;
+			$handler->denyAccess();
 		}
 		else
 		{
-			return self::$_baseQuery.self::getQueryString($params);
+			$handler->denyAccess();
 		}
 	}
 	
 	/**
-	 * Renvoie la page en cours
-	 * @return Page|boolean l'objet de la apge, ou false si inexistant
+	 * Renvoie la chaîne de paramètres GET assemblée
+	 * @param array|string $params une chaîne de paramètres ou un tableau de paramètres additionnels 
+	 * (sous la forme clé => valeur) pour compléter ou modifier ceux existant (facultatif, défaut : array())
+	 * @return string la chaîne de paramètres, avec le ? initial si nécessaire
 	 */
-	public static function getPage()
+	public static function getQueryString($params = array())
 	{
-		return self::$_page;
-	}
-	
-	/**
-	 * Renvoie le controleur de la page en cours
-	 * @return DefaultControler le controleur
-	 */
-	public static function getControler()
-	{
-		if (!isset(self::$_controler))
+		// Type des paramètres
+		if (is_string($params))
 		{
-			// Test si controleur existant
-			if (self::$_page->hasControler())
+			// Découpe
+			parse_str($params, $params);
+		}
+		
+		// Asssemblage
+		$string = http_build_query(array_merge(self::getGet(), $params));
+		return (strlen($string) > 0) ? '?'.$string : $string;
+	}
+
+	/**
+	 * Renvoie le handler de la requête en cours
+	 * @return PageRequest|CliRequest le handler
+	 */
+	public static function getHandler()
+	{
+		if (!isset(self::$_handler))
+		{
+			if (self::isCLI())
 			{
-				// Chargement
-				require(self::$_page->getControlerPath());
-				self::$_controler = new PageControler(self::$_page);
+				self::$_handler = new CliRequest();
+			}
+			elseif (self::issetGET('__ajax'))
+			{
+				self::$_handler = new AjaxPageRequest();
 			}
 			else
 			{
-				self::$_controler = new AppControler(self::$_page);
+				self::$_handler = new StandardPageRequest();
 			}
 		}
-		
-		return self::$_controler;
+
+		return self::$_handler;
 	}
-	
+
 	/**
-	 * Renvoie la requête sans les paramètres
-	 * @return string la requête
+	 * Renvoie le protocole en cours
+	 * @return string le protocole
 	 */
-	public static function getBaseQuery()
+	public static function getProtocol()
 	{
-		return self::$_baseQuery;
-	}
-	
-	/**
-	 * Renvoie la partie de la requête correspondant à l'url réelle de la page
-	 * @return string la requête
-	 */
-	public static function getPageQuery()
-	{
-		return self::$_pageQuery;
-	}
-	
-	/**
-	 * Renvoie la partie de la requête correspondant aux paramètres additionnels
-	 * @return string la requête
-	 */
-	public static function getParamQuery()
-	{
-		return self::$_paramQuery;
-	}
-	
-	/**
-	 * Renvoie les paramètres contenus dans le chemin de la requête elle-même
-	 * par exemple :
-	 * 		- la page /edit chargée avec la requête /edit/user/1 va renvoyer array( 'user' => 1 )
-	 * 		- la page /list chargée avec la requête /list/group/1/page/2 va renvoyer array( 'group' => 1, 'page' => 2 )
-	 * 		- la page /edit chargée avec la requête /edit/user/settings/1 va renvoyer array( 'user' => 1, 'settings' => 1 )
-	 * @return array les paramètres trouvés
-	 */
-	public static function getQueryParams()
-	{
-		return self::$_queryParams;
-	}
-	
-	/**
-	 * Renvoie la valeur d'un identifiant contenu dans l'url si existant
-	 * @param string $name le nom de l'identifiant (partie précédente de l'url)
-	 * @param mixed $default la valeur par défaut
-	 * @return mixed la valeur si existant, sinon $default
-	 */
-	public static function getQueryParam($name, $default = NULL)
-	{
-		return isset(self::$_queryParams[$name]) ? self::$_queryParams[$name] : $default;
-	}
-	
-	/**
-	 * Obtient la liste des actions pré-requêtes
-	 * @return boolean|array la liste des action, ou false si aucune
-	 */
-	public static function getActionRequest()
-	{
-		return self::$_action;
-	}
-	
-	/**
-	 * Obtient les appels de la requête AJAX
-	 * @return boolean|array la liste des requêtes AJAX, ou false si aucune
-	 */
-	public static function getAjaxRequest()
-	{
-		return self::$_ajax;
-	}
-	
-	/**
-	 * Redirige en interne vers une autre page, sans modifier les chemins de la requête orginale
-	 * @param string $request la requête à utiliser
-	 * @return void
-	 */
-	public static function internalRedirect($request)
-	{
-		self::$_page = Page::getByUrl($request);
-		if (!self::$_page)
+		if (!isset(self::$_protocol))
 		{
-			Request::header404();
+			if (isset($_SERVER['SERVER_PROTOCOL']))
+			{
+				self::$_protocol = $_SERVER['SERVER_PROTOCOL'];
+				if (self::$_protocol != 'HTTP/1.1' and self::$_protocol != 'HTTP/1.0')
+				{
+					self::$_protocol = 'HTTP/1.0';
+				}
+			}
+			else
+			{
+				self::$_protocol = 'HTTP/1.0';
+			}
 		}
+
+		return self::$_protocol;
+	}
+	
+	/**
+	 * Indique si la requête utilise la réécriture d'URL
+	 * @return boolean une confirmation
+	 */
+	public static function isRewriten()
+	{
+		return self::$_rewritten;
+	}
+	
+	/**
+	 * Indique si la requête est en cours d'éxécution
+	 * @return boolean une confirmation
+	 */
+	public static function isRunning()
+	{
+		return self::$_running;
 	}
 	
 	/**
@@ -591,7 +425,7 @@ class Request extends StaticClass {
 			{
 				self::$_mode = self::MODE_CLI;
 			}
-			elseif (isset($_SERVER['HTTP_X_REQUESTED_WITH']) and strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest' or self::getAjaxRequest())
+			elseif (isset($_SERVER['HTTP_X_REQUESTED_WITH']) and strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')
 			{
 				self::$_mode = self::MODE_AJAX;
 			}
@@ -606,10 +440,18 @@ class Request extends StaticClass {
 	}
 	
 	/**
+	 * Indique si une requête est de type ligne de commande
+	 * @return boolean une confirmation si le mode détecté est la ligne de commande
+	 */
+	public static function isCLI()
+	{
+		// Test
+		return (self::getMode() == self::MODE_CLI);
+	}
+	
+	/**
 	 * Indique si une requête est de type AJAX
-	 * 
-	 * Détermine si le mode de requête détecté est le mode AJAX
-	 * @return boolean une confirmation si le mode est AJAX ou non
+	 * @return boolean une confirmation si le mode détecté est AJAX
 	 */
 	public static function isAjax()
 	{
@@ -618,48 +460,13 @@ class Request extends StaticClass {
 	}
 	
 	/**
-	 * Renvoie la chaîne de paramètres GET assemblée
-	 * @param array|string $params une chaîne de paramètres ou un tableau de paramètres additionnels 
-	 * (sous la forme clé => valeur) pour compléter ou modifier ceux existant (facultatif, défaut : array())
-	 * @return string la chaîne de paramètres, avec le ? initial si nécessaire
+	 * Indique si une requête est de type Web (standard)
+	 * @return boolean une confirmation si le mode détecté est une requête web
 	 */
-	public static function getQueryString($params = array())
+	public static function isWeb()
 	{
-		// Type des paramètres
-		if (is_string($params))
-		{
-			// Découpe
-			parse_str($params, $params);
-		}
-		
-		// Asssemblage
-		$string = http_build_query(array_merge(self::getGet(), $params));
-		return (strlen($string) > 0) ? '?'.$string : $string;
-	}
-
-	/**
-	 * Renvoie le protocole en cours
-	 * @return string le protocole
-	 */
-	public static function getProtocol()
-	{
-		if (!isset(self::$_protocol))
-		{
-			if (isset($_SERVER['SERVER_PROTOCOL']))
-			{
-				self::$_protocol = $_SERVER['SERVER_PROTOCOL'];
-				if (self::$_protocol != 'HTTP/1.1' and self::$_protocol != 'HTTP/1.0')
-				{
-					self::$_protocol = 'HTTP/1.0';
-				}
-			}
-			else
-			{
-				self::$_protocol = 'HTTP/1.0';
-			}
-		}
-
-		return self::$_protocol;
+		// Test
+		return (self::getMode() == self::MODE_WEB);
 	}
 	
 	/**
@@ -668,139 +475,15 @@ class Request extends StaticClass {
 	 */
 	public static function exec()
 	{
-		$controler = self::getControler();
+		self::$_running = true;
+		$handler = self::getHandler();
 		
-		// Actions
-		if ($actions = self::getActionRequest())
-		{
-			foreach ($actions as $action)
-			{
-				if (method_exists($controler, $action))
-				{
-					call_user_func(array($controler, $action));
-				}
-			}
-		}
+		// Exécution
+		$handler->start();
+		$content = $handler->exec();
+		$handler->end();
 		
-		// Si ajax
-		if ($ajax = self::getAjaxRequest())
-		{
-			$content = array();
-			foreach ($ajax as $call)
-			{
-				if (method_exists($controler, $call))
-				{
-					$content[] = call_user_func(array($controler, $call));
-				}
-			}
-			
-			// Si requête unique
-			if (count($content) === 1)
-			{
-				$content = $content[0];
-			}
-			
-			// Ajout à l'historique
-			History::addParams();
-		}
-		else
-		{
-			// Construction de la page
-			$content = $controler->build();
-			
-			// Ajout à l'historique
-			History::add();
-		}
-		
+		self::$_running = false;
 		return $content;
-	}
-	
-	/**
-	 * Envoie un header location de redirection
-	 * @param string $target la page à charger
-	 * @return void
-	 * @throws SCException
-	 */
-	public static function redirect($target)
-	{
-		// Sécurisation
-		if (substr($target, 0, 1) === '#')
-		{
-			throw new SCException('Url de redirection non valide', 8, 'Url : '.$target);
-		}
-
-		// Envoi
-		header('location:'.$target);
-		exit();
-	}
-	
-	/**
-	 * Cherche si une page de redirection est définie ($redirect en GET ou POST), sinon retourne à la page précédente, 
-	 * ou à la page par défaut si aucune page précédente n'est définie
-	 * @param string $default l'url par défaut si aucune page précédente n'est trouvée (défaut : accueil)
-	 * @param string $append une chaîne à rajouter à l'url de redirection si elle est définie
-	 * @return void
-	 */
-	public static function redirectOrGoBack($default = '', $append = '')
-	{
-		if (self::issetParam('redirect'))
-		{
-			self::redirect(trim(self::getParam('redirect').$append));
-		}
-		else
-		{
-			History::goBack($default);
-		}
-	}
-	
-	/**
-	 * Cherche si une page de redirection est définie ($redirect en GET ou POST), sinon va à la page par défaut
-	 * @param string $default l'url par défaut si aucune page de redirection n'est trouvée (défaut : accueil)
-	 * @param string $append une chaîne à rajouter à l'url de redirection si elle est définie
-	 * @return void
-	 */
-	public static function redirectOrGo($default = '', $append = '')
-	{
-		if (self::issetParam('redirect'))
-		{
-			self::redirect(trim(self::getParam('redirect').$append));
-		}
-		else
-		{
-			self::redirect($default);
-		}
-	}
-	
-	/**
-	 * Envoie un header 403 - accès refusé
-	 * @return void
-	 * @todo ajouter le support des pages peronnalisées
-	 */
-	public static function header403()
-	{
-		header(self::getProtocol().' 403 Forbidden', true, 403);
-		exit();
-	}
-	
-	/**
-	 * Envoie un header 404 - non trouvé
-	 * @return void
-	 * @todo ajouter le support des pages peronnalisées
-	 */
-	public static function header404()
-	{
-		header(self::getProtocol().' 404 Not Found', true, 404);
-		exit();
-	}
-	
-	/**
-	 * Envoie un header 500 - erreur interne
-	 * @return void
-	 * @todo ajouter le support des pages personnalisées
-	 */
-	public static function header500()
-	{
-		header(self::getProtocol().' 500 Internal Server Error', true, 500);
-		exit();
 	}
 }

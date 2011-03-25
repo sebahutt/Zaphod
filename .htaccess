@@ -1,0 +1,61 @@
+options -MultiViews
+
+# ----------------------------------------------------------------------
+#  Règles de réécriture d'URL :
+# ----------------------------------------------------------------------
+
+<IfModule mod_rewrite.c>
+
+	# Activation du module de réécriture d'URL :
+	RewriteEngine on
+	
+	# Fichier de réécriture chargé par défaut
+	DirectoryIndex _sys.php index.php index.html
+	
+	# Fichiers/dossiers/liens symboliques existants
+	RewriteCond %{REQUEST_FILENAME} -s [OR]
+	RewriteCond %{REQUEST_FILENAME} -l [OR]
+	RewriteCond %{REQUEST_FILENAME} -d
+	RewriteRule ^.*$ - [NC,L]
+	
+	# Réécriture
+	RewriteRule ^minified/(.*\.(js|css))$ _sys.php?__minify=$1 [NC,L,QSA]
+	
+	# Réécriture
+	RewriteRule ^(.*)$ _sys.php?__rewrite=$1 [NC,L,QSA]
+
+</IfModule>
+
+# Les éléments suivants proviennent de HTML5BoilerPlate :
+
+# ----------------------------------------------------------------------
+# Proper MIME type for all files
+# ----------------------------------------------------------------------
+
+# audio
+AddType audio/ogg                      oga ogg
+
+# video
+AddType video/ogg                      ogv
+AddType video/mp4                      mp4
+AddType video/webm                     webm
+
+# Proper svg serving. Required for svg webfonts on iPad
+#   twitter.com/FontSquirrel/status/14855840545
+AddType     image/svg+xml              svg svgz 
+AddEncoding gzip                       svgz
+                                       
+# webfonts                             
+AddType application/vnd.ms-fontobject  eot
+AddType font/truetype                  ttf
+AddType font/opentype                  otf
+AddType application/x-font-woff        woff
+
+# assorted types                                      
+AddType image/x-icon                   ico
+AddType image/webp                     webp
+AddType text/cache-manifest            appcache manifest
+AddType text/x-component               htc
+AddType application/x-chrome-extension crx
+AddType application/x-xpinstall        xpi
+AddType application/octet-stream       safariextz

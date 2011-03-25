@@ -28,6 +28,11 @@ final class Env {
 	 */
 	private static $_initTime;
 	/**
+	 * Dossier de cache local
+	 * @var string
+	 */
+	private static $_cachePath;
+	/**
 	 * Liste des dossiers d'autoload
 	 * @var array
 	 */
@@ -174,6 +179,24 @@ final class Env {
 	}
 	
 	/**
+	 * Renvoie le chemin du dossier cache local
+	 * @return string le chemin local, dont l'existence est vérifiée
+	 */
+	public static function getCachePath()
+	{
+		if (!isset(self::$_cachePath))
+		{
+			self::$_cachePath = PATH_CACHE;
+			if (!file_exists(self::$_cachePath))
+			{
+				mkdir(self::$_cachePath, 0755, true);
+			}
+		}
+		
+		return self::$_cachePath;
+	}
+	
+	/**
 	 * Récupère le cache du chargeur de classes
 	 * @return array le cache existant
 	 */
@@ -191,7 +214,7 @@ final class Env {
 			self::$_autoloadCache = array();
 			
 			// Détection de cache absent ou trop ancien
-			$cacheFile = PATH__CACHE.'autoload.php';
+			$cacheFile = self::getCachePath().'autoload.php';
 			if (!file_exists($cacheFile) or time()-filemtime($cacheFile) > 3600)
 			{
 				self::_updateAutoloadCache();
@@ -220,12 +243,8 @@ final class Env {
 	{
 		// Init
 		self::$_autoloadCache = array(
-			
-			// Liste des dossiers de base
-			'dirs' => array(),
-			
-			// Chemin fichier des classes
-			'classes' => array()
+			'dirs' => array(),			// Liste des dossiers de base
+			'classes' => array()		// Chemin fichier des classes/interfaces
 		);
 		
 		// Parcours
@@ -236,7 +255,7 @@ final class Env {
 		}
 		
 		// Mise à jour du fichier
-		file_put_contents(PATH__CACHE.'autoload.php', '<?php'."\n".'// Cache des fichiers de classes, supprimer le fichier en cas de problème'."\n".'self::$_autoloadCache = '.var_export(self::$_autoloadCache, true).';');
+		file_put_contents(self::getCachePath().'autoload.php', '<?php'."\n".'// Cache des fichiers de classes, supprimer le fichier en cas de problème'."\n".'self::$_autoloadCache = '.var_export(self::$_autoloadCache, true).';');
 	}
 	
 	/**

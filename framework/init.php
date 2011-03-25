@@ -44,7 +44,6 @@ unset($path);
 
 // Sous-dossiers
 define('PATH__CONFIG',		PATH_SYSTEM.'_config/');			// Dossier de configuration, à la racine du site
-define('PATH__CACHE',		PATH_SYSTEM.'_cache/');				// Dossier du cahe système
 define('PATH__CLASSES',		PATH_SYSTEM.'_classes/');			// Dossier des classes
 define('PATH__LANG',		PATH_SYSTEM.'_lang/');				// Dossier des fichiers de langues
 
