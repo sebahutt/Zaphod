@@ -1,6 +1,6 @@
 <?php
 /**
- * Classe d'accès aux données de requête
+ * Classe d'accès aux données de requête (modèle temporaire en attendant de passer à un router)
  */
 class Request extends StaticClass {
 	/**
