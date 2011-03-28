@@ -55,7 +55,7 @@ class String extends StaticClass {
 		}
 		
 		// Traitement
-		$pathinfo['filename'] = preg_replace(array_keys($map), array_values($map), trim(strtolower($pathinfo['filename'])));
+		$pathinfo['filename'] = trim(preg_replace(array_keys($map), array_values($map), strtolower($pathinfo['filename'])));
 		$pathinfo['filename'] = preg_replace('/_{2,}/', '_', str_replace(' ', '_', $pathinfo['filename']));
 		
 		// Renvoi

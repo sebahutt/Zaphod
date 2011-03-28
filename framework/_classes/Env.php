@@ -82,7 +82,10 @@ final class Env {
 			session_start();
 			
 			// Supprime les avertissements sur la timezone pendant l'initialisation (la valeur définitive est affectée plus bas)
-			date_default_timezone_set(date_default_timezone_get());
+			if (@date_default_timezone_set(date_default_timezone_get()) === false)
+			{
+				date_default_timezone_set('UTC');
+			}
 			
 			// Autoload
 			self::addAutoloadDirectory(PATH__CLASSES, true);
