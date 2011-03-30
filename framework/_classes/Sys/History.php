@@ -4,56 +4,48 @@
  */
 class History extends StaticClass {
 	/**
-	 * Ajoute la page courante à l'historique
+	 * Ajoute la requête à l'historique
+	 * @param string $query la requête
+	 * @param array $params les paramètres (facultatif, défaut : array())
 	 * @return void
 	 */
-	public static function add()
+	public static function add($query, $params = array())
 	{
-		if (!$page = Request::getHandler()->getPage())
+		// Récupération
+		$list = Session::getCache('History', 'list', array());
+		
+		// On n'ajoute la page qu'une fois
+		if (!isset($list[0]) or $list[0]['query'] != $query)
 		{
-			return;
+			// Ajout
+			array_unshift($list, array(
+				'query' => $query,
+				'params' => $params
+			));
+			
+			// Limite
+			if (count($list) > 10)
+			{
+				$list = array_slice($list, 0, 10);
+			}
+		}
+		elseif ($list[0]['query'] == $query)
+		{
+			// Mise à jour des paramètres
+			$list[0]['params'] = $params;
 		}
 		
-		// Si la page est compatible avec l'historique
-		if ($page->addToHistory == 1)
-		{
-			// Récupération
-			$query = Request::getHandler()->getBaseQuery();
-			$list = Session::getCache('History', 'list', array());
-			
-			// On n'ajoute la page qu'une fois
-			if (!isset($list[0]) or $list[0]['query'] != $query)
-			{
-				// Ajout
-				array_unshift($list, array(
-					'query' => $query,
-					'params' => ($page->saveParams == 1) ? Request::getParams() : array()
-				));
-				
-				// Limite
-				if (count($list) > 10)
-				{
-					$list = array_slice($list, 0, 10);
-				}
-			}
-			elseif ($page->saveParams == 1 and $list[0]['query'] == $query)
-			{
-				// Mise à jour des paramètres
-				$list[0]['params'] = Request::getParams();
-			}
-			
-			// Ecriture
-			Session::setCache('History', 'list', $list);
-		}
+		// Ecriture
+		Session::setCache('History', 'list', $list);
 	}
 	
 	/**
-	 * Nettoie l'historique jusqu'à la page courante
+	 * Nettoie l'historique jusqu'à la requête
+	 * @param string $query la requête
 	 * @return void
 	 */
-	public static function trim()
+	public static function trim($query)
 	{
-		$query = Request::getHandler()->getBaseQuery();
 		$list = Session::getCache('History', 'list', array());
 		
 		$max = count($list);
@@ -74,17 +66,27 @@ class History extends StaticClass {
 	}
 	
 	/**
-	 * Ajoute les paramètres de la page courante à l'historique (ex: requête AJAX sur la même page)
+	 * Met à jour les paramètres de la dernière occurence de la requête dans l'historique (ex: requête AJAX sur la même page)
+	 * @param string $query la requête
+	 * @param array $params les paramètres (facultatif, défaut : array())
 	 * @return void
 	 */
-	public static function addParams()
+	public static function updateParams($query, $params = array())
 	{
 		$list = Session::getCache('History', 'list', array());
-		if (Request::getHandler()->getPage()->saveParams == 1 and isset($list[0]) and $list[0]['query'] == Request::getHandler()->getBaseQuery())
+		foreach ($list as $index => $history)
 		{
-			// Mise à jour des paramètres
-			$list[0]['params'] = Request::getParams();
-			Session::setCache('History', 'list', $list);
+			if ($history['query'] == $query)
+			{
+				// Mise à jour des paramètres
+				$list[$index]['params'] = $params;
+				
+				// Ecriture
+				Session::setCache('History', 'list', $list);
+				
+				// Fin
+				break;
+			}
 		}
 	}
 	
@@ -107,14 +109,20 @@ class History extends StaticClass {
 	}
 	
 	/**
-	 * Renvoie l'url de la première page dans l'historique différente de la page actuelle
+	 * Renvoie l'url de la première page dans l'historique différente de la requête fournie
+	 * @param string $query la requête dont on recherche la page précédente, ou NULL pour la récupérer automatiquement (facultatif, défaut : NULL)
 	 * @return array|boolean un tableau avec 2 index ('query' et 'params'), ou false si aucune
 	 */
-	public static function getPrevious()
+	public static function getPrevious($query = NULL)
 	{
+		if (is_null($query))
+		{
+			$query = Request::getParser()->getBaseQuery();
+		}
+		
+		// Remontée
 		$index = -1;
 		$previous = self::getHistory($index);
-		$query = Request::getHandler()->getBaseQuery();
 		while ($previous !== false and $previous['query'] == $query)
 		{
 			--$index;
@@ -122,19 +130,5 @@ class History extends StaticClass {
 		}
 		
 		return $previous;
-	}
-	
-	/**
-	 * Retourne à la page précédente, ou à la page par défaut si aucune page précédente n'est définie
-	 * @param string $default l'url par défaut si aucune page précédente n'est trouvée (défaut : accueil)
-	 * @return void
-	 */
-	public static function goBack($default = '')
-	{
-		// Recherche de la page précédente
-		$previous = self::getPreviousHistory();
-		
-		// Redirection
-		Request::getHandler()->redirect(($previous !== false) ? self::buildUrl($previous['query'], $previous['params']) : $default);
 	}
 }

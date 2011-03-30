@@ -3,8 +3,8 @@
 $path = array();
 
 // Chemins principaux
-$path['url_root'] = addTrailingSlash($_SERVER['HTTP_HOST']);			// Domaine
-$path['path_root'] = addTrailingSlash($_SERVER['DOCUMENT_ROOT']);		// Racine des fichiers web
+$path['url_root'] = isset($_SERVER['HTTP_HOST']) ? addTrailingSlash($_SERVER['HTTP_HOST']) : '';	// Domaine
+$path['path_root'] = addTrailingSlash($_SERVER['DOCUMENT_ROOT']);									// Racine des fichiers web
 
 // Base des fichiers web (peut être différent de DOCUMENT_ROOT)
 $path['base'] = (isset($_SERVER['SCRIPT_FILENAME']) and strlen($_SERVER['SCRIPT_FILENAME']) > 0) ? dirname($_SERVER['SCRIPT_FILENAME']).'/' : $path['path_root'];

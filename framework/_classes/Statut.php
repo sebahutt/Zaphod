@@ -26,7 +26,7 @@ class Statut extends BaseClass
 		$result = Database::get(self::$server)->query('SELECT * FROM `'.self::$table.'` WHERE `id_statut`=?', intval($id));
 		
 		// Si trouvé
-		if (count($result) > 0)
+		if ($result->count() > 0)
 		{
 			return Factory::getInstance('Statut', $result[0]);
 		}

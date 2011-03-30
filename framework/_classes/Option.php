@@ -71,7 +71,7 @@ class Option extends BaseClass
 		$result = Database::get(self::$server)->query('SELECT * FROM `'.self::$table.'` WHERE `id_option`=?', array($id));
 		
 		// Si trouvé
-		if (count($result) > 0)
+		if ($result->count() > 0)
 		{
 			return Factory::getInstance('Option', $result[0]);
 		}

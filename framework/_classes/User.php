@@ -42,6 +42,21 @@ class User extends BaseClass
 	protected static $_current;
 	
 	/**
+	 * Initialise la classe
+	 */
+	public static function initClass()
+	{
+		// Effacement de l'utilisateur
+		if (Request::getGet('logout', 0) == 1)
+		{
+			self::logOut();
+		}
+		
+		// Nettoyage
+		Request::clearGet('logout');
+	}
+	
+	/**
 	 * Indique si l'utilisateur est un utilisateur par défaut
 	 * @return boolean une confirmation
 	 */
@@ -228,7 +243,7 @@ class User extends BaseClass
 		$result = Database::get(self::$server)->query('SELECT * FROM `users` A LEFT JOIN `statuts` B ON A.`statut`=B.`id_statut` WHERE A.`id_user`='.intval($id_user).';');
 	
 		// Si trouvé
-		if (count($result) > 0)
+		if ($result->count() > 0)
 		{
 			return Factory::getInstance('User', $result[0]);
 		}
@@ -300,7 +315,7 @@ class User extends BaseClass
 			$result = Database::get(self::$server)->query('SELECT * FROM `users` WHERE `login`=? AND `pass`=? AND `actif`=1', array($login, md5($pass)));
 			
 			// Si trouvé
-			if (count($result) > 0)
+			if ($result->count() > 0)
 			{
 				// Stockage
 				self::$_current = Factory::getInstance('User', $result[0]);

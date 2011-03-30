@@ -178,7 +178,17 @@ final class Env {
 		header('Content-Type: text/html; charset=utf-8');
 
 		// Affichage
-		echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">'."\n".'<html xmlns="http://www.w3.org/1999/xhtml">'."\n".'<head>'."\n".' < meta http-equiv="Content-Type" content="text/html; charset=utf-8" />'."\n".' <title>Site en cours de mise à jour</title>'."\n".'</head>'."\n\n".'<body>'."\n".'<h1>Site temporairement désactivé</h1>'."\n".'<p>Le site est en cours de mise à jour, veuillez tenter de vous connecter à nouveau dans quelques instants.</p>'."\n".'</body>'."\n".'</html>';
+		echo '<!DOCTYPE html>'."\n".
+			'<html lang="fr">'."\n".
+			'<head>'."\n".
+			'<title>Site en cours de mise à jour</title>'."\n".
+			'<meta charset="utf-8">'."\n".
+			'<meta name="robots" content="none">'."\n".
+			'<body>'."\n".
+			'<h1>Site temporairement désactivé</h1>'."\n".
+			'<p>Le site est en cours de mise à jour, veuillez tenter de vous connecter à nouveau dans quelques instants.</p>'."\n".
+			'</body>'."\n".
+			'</html>';
 		
 		// Terminaison
 		exit();
@@ -380,37 +390,14 @@ final class Env {
 			restore_exception_handler();
 		}
 		
-		// Vidage du buffer
-		if (ob_get_level() > 0)
-		{
-			ob_end_clean();
-		}
-		
-		// Chargement de la page d'erreur
-		$buffered = class_exists('Response', false);
-		if ($buffered)
-		{
-			ob_start();
-		}
-		
-		// Si fichier d'erreur
-		if (defined('PATH_ERRORS') and file_exists(PATH_ERRORS.'error.php'))
-		{
-			require(PATH_ERRORS.'error.php');
-		}
-		else
-		{
-			echo 'Error <strong>'.$errno.'</strong> in <strong>'.$errfile.'</strong> @ line <strong>'.$errline.'</strong><br><strong>Message:</strong> '.$errstr.'<br><strong>Env:</strong> <pre>'.var_export($errcontext, true).'</pre>';
-		}
-		
-		// sortie
-		if ($buffered)
-		{
-			$retour = ob_get_contents();
-			ob_end_clean();
-			Response::output($retour);
-		}
-		exit();
+		// Sortie
+		Request::abort(500, $errstr, array(
+			'errno' =>			$errno,
+			'errstr' =>			$errstr,
+			'errfile' =>		$errfile,
+			'errline' =>		$errline,
+			'errcontext' =>		$errcontext
+		));
 	}
 	
 	
@@ -434,31 +421,10 @@ final class Env {
 			ob_end_clean();
 		}
 		
-		// Chargement de la page d'erreur
-		$buffered = class_exists('Response', false);
-		if ($buffered)
-		{
-			ob_start();
-		}
-		
-		// Si fichier d'erreur
-		if (defined('PATH_ERRORS') and file_exists(PATH_ERRORS.'error.php'))
-		{
-			require(PATH_ERRORS.'error.php');
-		}
-		else
-		{
-			echo 'Error <strong>'.$exception->getCode().'</strong> in <strong>'.$exception->getFile().'</strong> @ line <strong>'.$exception->getLine().'</strong><br><strong>Message:</strong> '.$exception->getMessage().'<br><strong>Env:</strong> <pre>'.$exception->getTraceAsString().'</pre>';
-		}
-		
-		// sortie
-		if ($buffered)
-		{
-			$retour = ob_get_contents();
-			ob_end_clean();
-			Response::output($retour);
-		}
-		exit();
+		// Sortie
+		Request::abort(500, $exception->getMessage(), array(
+			'exception' =>		$exception
+		));
 	}
 	
 	/**

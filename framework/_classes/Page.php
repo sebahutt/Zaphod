@@ -55,7 +55,7 @@ class Page extends BaseClass
 				$result = Database::get(self::$server)->query('SELECT * FROM `'.self::$table.'` A LEFT JOIN `'.self::$table.'_access` B ON A.`id_page`=B.`page` AND (B.`statut` IS NULL OR B.`statut`=?) WHERE id_page=?;', array(User::getCurrent()->statut, $this->id_parent));
 				
 				// Si trouvé
-				if (count($result) > 0)
+				if ($result->count() > 0)
 				{
 					// Composition
 					$this->_parent = Factory::getInstance('Page', $result[0]);

@@ -1,28 +1,43 @@
 <?php
 /**
- * Classe d'accès aux données de requête (modèle temporaire en attendant de passer à un router)
+ * Classe de gestion de la requête en cours
  */
 class Request extends StaticClass {
 	/**
-	 * Handler de la requête en cours
-	 * @var PageRequest|CliRequest
+	 * Objet d'analyse de la requête
+	 * @var RequestParser
 	 */
-	protected static $_handler;
+	protected static $_parser = NULL;
+	/**
+	 * Routes de requête
+	 * @var array
+	 */
+	protected static $_routes = array();
+	/**
+	 * Route finale de la requête
+	 * @var iRoute
+	 */
+	protected static $_route = NULL;
+	/**
+	 * Gestionnaires de requête
+	 * @var array
+	 */
+	protected static $_handlers = array();
+	/**
+	 * Gestionnaire final de la requête
+	 * @var array
+	 */
+	protected static $_handler = NULL;
+	/**
+	 * Gestionnaire de réponse
+	 * @var iResponse
+	 */
+	protected static $_response = NULL;
 	/**
 	 * Mode de la requête courante
 	 * @var int
 	 */
 	protected static $_mode;
-	/**
-	 * Le protocole HTTP en cours
-	 * @var string
-	 */
-	protected static $_protocol;
-	/**
-	 * Indique si la requête est en cours d'exécution
-	 * @var boolean
-	 */
-	protected static $_running = false;
 	/**
 	 * Mode de requête CLI
 	 * @var int
@@ -40,101 +55,232 @@ class Request extends StaticClass {
 	const MODE_AJAX = 3;
 	
 	/**
-	 * Initialise la requête en cours
-	 * @return void
+	 * Définit le parseur de requête
+	 * @param iRequestParser $parser un objet implémentant l'interface iRequestParser
 	 */
-	public static function initClass()
+	public static function setParser($parser)
 	{
-		// Effacement de l'utilisateur
-		if (isset($_GET['logout']) and $_GET['logout'] == 1)
+		self::$_parser = $parser;
+	}
+	
+	/**
+	 * Crée le parseur de requête si non défini et le renvoie
+	 * @param iRequestParser le parseur
+	 */
+	public static function getParser()
+	{
+		// Par défaut
+		if (is_null(self::$_parser))
 		{
-			User::logOut();
+			self::$_parser = self::isCLI() ? new CliRequestParser() : new HttpRequestParser();
 		}
 		
-		// Nettoyage
-		self::clearGet('logout');
-		
-		// Handler en cours
-		$handler = self::getHandler();
-		$handler->init();
-		
-		// Vérification des droits
-		if ($handler->isAccessible())
-		{
-			$handler->allowAccess();
-		}
-		else
-		{
-			$handler->denyAccess();
-		}
+		return self::$_parser;
+	}
+	
+	/**
+	 * Ajout d'une route de requête
+	 * @param iRoute $route un objet implémentant l'interface iRoute
+	 */
+	public static function addRoute($route)
+	{
+		self::$_routes[] = $route;
 	}
 
 	/**
-	 * Renvoie le handler de la requête en cours
-	 * @return PageRequest|CliRequest le handler
+	 * Indique si la route finale de la requête est définie
+	 * @return boolean une confirmation
+	 */
+	public static function hasActiveRoute()
+	{
+		return !is_null(self::$_route);
+	}
+
+	/**
+	 * Renvoie la route finale de la requête
+	 * @return iRoute la route si définie, ou NULL si aucun ou pas encore déterminé
+	 */
+	public static function getRoute()
+	{
+		return self::$_route;
+	}
+	
+	/**
+	 * Ajout d'un handler de requête
+	 * @param iHandler $handler un objet implémentant l'interface iHandler
+	 */
+	public static function addHandler($handler)
+	{
+		self::$_handlers[] = $handler;
+	}
+
+	/**
+	 * Indique si le handler final de la requête est défini
+	 * @return boolean une confirmation
+	 */
+	public static function hasActiveHandler()
+	{
+		return !is_null(self::$_handler);
+	}
+
+	/**
+	 * Renvoie le handler final de la requête
+	 * @return iHandler le handler si défini, ou NULL si aucun ou pas encore déterminé
 	 */
 	public static function getHandler()
 	{
-		if (!isset(self::$_handler))
-		{
-			if (self::isCLI())
-			{
-				self::$_handler = new CliRequest();
-			}
-			elseif (self::issetGET('__ajax'))
-			{
-				self::$_handler = new AjaxPageRequest();
-			}
-			else
-			{
-				self::$_handler = new StandardPageRequest();
-			}
-		}
-
 		return self::$_handler;
 	}
-
+	
 	/**
-	 * Renvoie le protocole en cours
-	 * @return string le protocole
+	 * Définit le gestionnaire de réponse
+	 * @param iResponse $response un objet implémentant l'interface iResponse
 	 */
-	public static function getProtocol()
+	public static function setResponse($response)
 	{
-		if (!isset(self::$_protocol))
+		self::$_response = $response;
+	}
+	
+	/**
+	 * Crée le gestionnaire de réponse si non défini et le renvoie
+	 * @param iResponse le gestionnaire de réponse
+	 */
+	public static function getResponse()
+	{
+		// Par défaut
+		if (is_null(self::$_response))
 		{
-			if (isset($_SERVER['SERVER_PROTOCOL']))
+			self::$_response = self::isCLI() ? new CliResponse() : new HttpResponse();
+		}
+		
+		return self::$_response;
+	}
+	
+	/**
+	 * Exécute la requête
+	 * @return void
+	 */
+	public static function run()
+	{
+		// Préparation
+		$parser = self::getParser();
+		$response = self::getResponse();
+		
+		// Analyse de la requête
+		if (!$parser->run())
+		{
+			self::abort(400);	// Bad Request
+		}
+		
+		// Parcours des routes disponibles
+		self::$_route = self::getParserRoute($parser);
+		
+		// Si aucune route trouvée
+		if (is_null(self::$_route))
+		{
+			self::abort(404);	// Not Found
+		}
+		
+		// Parcours des handlers disponibles
+		self::$_handler = self::getRouteHandler(self::$_route);
+		
+		// Si aucun handler trouvé
+		if (is_null(self::$_handler))
+		{
+			self::abort(501);	// Not Implemented
+		}
+		
+		// Préparation
+		$inited = self::$_route->init();
+		if ($inited !== true)
+		{
+			self::abort($inited);
+		}
+		
+		// Exécution
+		$response->addContent(self::$_handler->exec(self::$_route));
+		
+		// Cloture
+		self::$_route->close();
+		
+		// Sortie
+		self::getResponse()->send();
+	}
+	
+	/**
+	 * Récupère la première route compatible avec le parser parmis celles disponibles
+	 * @param iRequestParser $parser le parser
+	 * @return iRoute la route trouvée, ou NULL si aucune
+	 */
+	public static function getParserRoute($parser)
+	{
+		foreach (self::$_routes as $route)
+		{
+			if ($route->match($parser))
 			{
-				self::$_protocol = $_SERVER['SERVER_PROTOCOL'];
-				if (self::$_protocol != 'HTTP/1.1' and self::$_protocol != 'HTTP/1.0')
-				{
-					self::$_protocol = 'HTTP/1.0';
-				}
-			}
-			else
-			{
-				self::$_protocol = 'HTTP/1.0';
+				return $route;
 			}
 		}
-
-		return self::$_protocol;
+		
+		return false;
 	}
 	
 	/**
-	 * Indique si la requête utilise la réécriture d'URL
-	 * @return boolean une confirmation
+	 * Récupère le première handler compatible avec la route parmis ceux disponibles
+	 * @param iRoute $route la route
+	 * @return iHandler le handler trouvé, ou NULL si aucun
 	 */
-	public static function isRewriten()
+	public static function getRouteHandler($route)
 	{
-		return self::$_rewritten;
+		foreach (self::$_handlers as $handler)
+		{
+			if ($handler->handles(self::$_route))
+			{
+				return $handler;
+			}
+		}
+		
+		return false;
 	}
 	
 	/**
-	 * Indique si la requête est en cours d'éxécution
-	 * @return boolean une confirmation
+	 * Interrompt la requête en cours et envoie l'erreur correspondante
+	 * @param int $error le code de l'erreur à l'origine de l'interruption (facultatif, défaut : 0)
+	 * @param string $message un message additonnel (facultatif, défaut : '')
+	 * @param mixed $data toute données additonnelle (facultatif, défaut : NULL)
+	 * @return void
 	 */
-	public static function isRunning()
+	public static function abort($error = 0, $message = '', $data = NULL)
 	{
-		return self::$_running;
+		// Fin du script
+		self::getResponse()->error($error, $message, $data);
+		exit();
+	}
+	
+	/**
+	 * Tente d'effectuer une redirection interne de la requête, si gérée par l'environnement de routage
+	 * @param string $request la nouvelle requête à prendre en compte (facultatif, défaut : NULL)
+	 * @return boolean une confirmation que la redirection a pu être effectuée
+	 */
+	public static function internalRedirect($request = NULL)
+	{
+		// Test de validité
+		$parser = self::getParser();
+		if (!$parser->redirect($request))
+		{
+			return false;
+		}
+		
+		// Test de la validité de l'environnement
+		if ($route = self::getParserRoute($parser) and $handler = self::getRouteHandler($route) and $route->redirect($parser))
+		{
+			self::$_route = $route;
+			self::$_handler = $handler;
+			self::getResponse()->addContent($handler->exec($route));
+			return true;
+		}
+		
+		return false;
 	}
 	
 	/**
@@ -468,23 +614,5 @@ class Request extends StaticClass {
 	{
 		// Test
 		return (self::getMode() == self::MODE_WEB);
-	}
-	
-	/**
-	 * Exécute la requête
-	 * @return string|array le ou les résultats de la requête
-	 */
-	public static function exec()
-	{
-		self::$_running = true;
-		$handler = self::getHandler();
-		
-		// Exécution
-		$handler->start();
-		$content = $handler->exec();
-		$handler->end();
-		
-		self::$_running = false;
-		return $content;
 	}
 }

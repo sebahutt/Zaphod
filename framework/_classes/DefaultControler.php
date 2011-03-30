@@ -70,21 +70,11 @@ class DefaultControler
 		ob_start();
 		
 		// Chargement du contenu
-		$ajaxPage = preg_replace('/\.php$/i', '.content.php', $this->_page->file);
-		if (Request::isAjax() and file_exists(PATH_BASE.$ajaxPage))
-		{
-			require(PATH_BASE.$ajaxPage);
-		}
-		else
-		{
-			require(PATH_BASE.$this->_page->file);
-		}
+		require(PATH_BASE.$this->_page->file);
 		
 		// Récupération
 		$retour = ob_get_contents();
 		ob_end_clean();
-		
-		// Renvoi
 		return $retour;
 	}
 	

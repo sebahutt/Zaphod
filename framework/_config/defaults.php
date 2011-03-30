@@ -10,12 +10,10 @@
 	// Options système
 	$config['sys']['allParamRewrite'] = 	false;									// Autorise l'utilisation d'urls uniquement constituées de paramètres additonnels
 	$config['sys']['updating'] = 			false;									// Site en cours de mise à jour
+	$config['sys']['maxFileSize'] = 		ini_get('upload_max_filesize');			// Taille maximale d'upload de fichiers
 	$config['sys']['dev'] = 				array('127.0.',							// Serveurs de développement
 												  '192.168.',						
 												  '10.100.');
-	
-	// Configuration
-	$config['sys']['maxFileSize'] = 		ini_get('upload_max_filesize');			// Taille maximale d'upload de fichiers
 	
 	// Localisation
 	$config['zone']['country'] = 			'fra';									// Code pays par défaut
@@ -46,4 +44,14 @@
 	$config['servers']['smtp']['timeout'] = 10;
 	$config['servers']['smtp']['tls'] = 	false;	// Mode SSL
 	$config['servers']['smtp']['newline'] = "\n";
-
+	
+	/*
+	 * Pages d'erreur (mode http uniquement)
+	 * Pour chaque code d'erreur, il est possible d'indiquer :
+	 * - un chemin absolu vers le fichier à afficher (doit comporter une extension .php ou .html)
+	 * - un chemin indiquant la ressource à charger (si géré par le router en cours)
+	 * 
+	 * La clé 'all' permet d'indiquer le fichier/la ressource à charger pour toutes les autres erreurs, et sera également utilisée
+	 * si les valeurs précisées ci-dessus échouent
+	 */
+	$config['errors'] =						array();
