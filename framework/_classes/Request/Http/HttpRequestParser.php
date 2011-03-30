@@ -24,11 +24,6 @@ class HttpRequestParser implements iRequestParser {
 	 */
 	protected $_routeQuery;
 	/**
-	 * Le protocole HTTP en cours
-	 * @var string
-	 */
-	protected $_protocol;
-	/**
 	 * Chaîne de réécriture si existante, false sinon
 	 * @var string|boolean
 	 */
@@ -153,30 +148,5 @@ class HttpRequestParser implements iRequestParser {
 	public function getRouteQuery()
 	{
 		return $this->_routeQuery;
-	}
-
-	/**
-	 * Renvoie le protocole en cours
-	 * @return string le protocole
-	 */
-	public function getProtocol()
-	{
-		if (!isset($this->_protocol))
-		{
-			if (isset($_SERVER['SERVER_PROTOCOL']))
-			{
-				$this->_protocol = $_SERVER['SERVER_PROTOCOL'];
-				if ($this->_protocol != 'HTTP/1.1' and $this->_protocol != 'HTTP/1.0')
-				{
-					$this->_protocol = 'HTTP/1.0';
-				}
-			}
-			else
-			{
-				$this->_protocol = 'HTTP/1.0';
-			}
-		}
-
-		return $this->_protocol;
 	}
 }

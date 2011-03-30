@@ -23,7 +23,7 @@ if (ini_get('register_globals'))
 		foreach ($input as $key=> $value)
 		{
 			// Si globalisée
-			if (!in_array($key, $noUnset) && isset($GLOBALS[$key]))
+			if (!in_array($key, $noUnset) AND isset($GLOBALS[$key]))
 			{
 				// Effacement
 				unset($GLOBALS[$key]);

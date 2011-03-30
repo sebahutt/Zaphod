@@ -47,7 +47,7 @@ class User extends BaseClass
 	public static function initClass()
 	{
 		// Effacement de l'utilisateur
-		if (Request::getGet('logout', 0) == 1)
+		if (Request::getGET('logout', 0) == 1)
 		{
 			self::logOut();
 		}

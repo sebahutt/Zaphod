@@ -11,7 +11,7 @@ class HttpPageHandler extends PageHandler implements iHandler {
 	public function begin($route)
 	{
 		// Si retour en arrière
-		if (Request::getGet('__back', 0) == 1)
+		if (Request::getGET('__back', 0) == 1)
 		{
 			// Nettoyage de l'historique
 			History::trim(Request::getParser()->getBaseQuery());

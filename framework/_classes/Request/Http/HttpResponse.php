@@ -4,11 +4,143 @@
  */
 class HttpResponse extends Response {
 	/**
+	 * Statut actuel de la requête
+	 * @var string
+	 */
+	protected $_status;
+	/**
+	 * Headers à envoyer
+	 * @var array
+	 */
+	protected $_headers;
+	
+	/**
+	 * Constructeur
+	 */
+	public function __construct()
+	{
+		parent::__construct();
+		
+		// Init
+		$this->_status = 200;
+		$this->_headers = array();
+		$this->header('Content-Type', 'text/html');
+	}
+
+	/**
+	 * Définit ou renvoie le code de statut de la requête
+	 * @param int $status le statut à affecter, ou NULL pour ne pas modifier
+	 * @return int le statut actuel
+	 * @throws SCException
+	 */
+	public function status($status = NULL)
+	{
+		// Si modification
+		if (!is_null($status))
+		{
+			// Sécurisation
+			if (headers_sent())
+			{
+				throw new SCException('Les headers ont déjà été envoyés, impossible de modifier la réponse', 999, 'Status : '.$status);
+			}
+			if (!self::statusExists($status))
+			{
+				throw new SCException('Statut HTTP pour la réponse non valide', 999, 'Status : '.$status);
+			}
+			
+			// Affectation
+			$this->_status = intval($status);
+			
+			// Si statut sans contenu
+			if ($this->_status == 204 or $this->_status == 304)
+			{
+				// Pas de contenu
+				$this->clearContent();
+				$this->unsetHeader('Content-Type');
+			}
+		}
+		
+		return $this->_status;
+	}
+
+	/**
+	 * Renvoie l'intégralité des headers définis
+	 * @return array
+	 */
+	public function headers()
+	{
+		return $this->_headers;
+	}
+
+	/**
+	 * Définit ou renvoie un header de réponse HTTP
+	 * @param string $name le nom du header
+	 * @param string $value la valeur
+	 * @return string la valeur du header si défini, ou NULL si pas défini
+	 * @throws SCException
+	 */
+	public function header($name, $value = NULL)
+	{
+		// Si modification
+		if (!is_null($value))
+		{
+			// Sécurisation
+			if (headers_sent())
+			{
+				throw new SCException('Les headers ont déjà été envoyés, impossible de modifier la réponse', 999, 'Header : '.$name.', valeur : '.$value);
+			}
+			
+			$this->_headers[$name] = $value;
+		}
+		
+		return isset($this->_headers[$name]) ? $this->_headers[$name] : NULL;
+	}
+
+	/**
+	 * Efface un header de réponse HTTP
+	 * @param string $name le nom du header
+	 * @return void
+	 */
+	public function unsetHeader($name)
+	{
+		if (isset($this->_headers[$name]))
+		{
+			unset($this->_headers[$name]);
+		}
+	}
+	
+	/**
 	 * Définit le contenu de la réponse
 	 * @param mixed $content le contenu à préparer et à afficher
 	 * @return boolean true si le contenu a bien été ajouté, false sinon
 	 */
+	public function content($content)
+	{
+		parent::content($content);
+		
+		// Mise à jour de la longueur
+		$this->header('Content-Length', $this->contentLength());
+	}
+	
+	/**
+	 * Ajoute du contenu à la réponse existante
+	 * @param mixed $content le contenu à préparer et à afficher
+	 * @return boolean true si le contenu a bien été ajouté, false sinon
+	 */
 	public function addContent($content)
+	{
+		parent::addContent($content);
+		
+		// Mise à jour de la longueur
+		$this->header('Content-Length', $this->contentLength());
+	}
+	
+	/**
+	 * Fonction interne de formattage du contenu
+	 * @param string $content le contenu à formatter
+	 * @return string le contenu formatté
+	 */
+	protected function _formatContent($content)
 	{
 		// Si site dans un sous-dossier
 		if (strlen(URL_FOLDER) > 0)
@@ -17,7 +149,67 @@ class HttpResponse extends Response {
 			$content = preg_replace('/(href|src|action)="\//i', '$1="/'.URL_FOLDER, $content);
 		}
 		
-		parent::addContent($content);
+		return parent::_formatContent($content);
+	}
+
+	/**
+	 * Indique si la requête peut avoir du contenu
+	 * @return bool
+	 */
+	public function canHaveBody()
+	{
+		return (($this->_status < 100 or $this->_status >= 200) and $this->_status != 204 and $this->_status != 304);
+	}
+
+	/**
+	 * Envoie les headers HTTP
+	 * @return void
+	 */
+	protected function _sendHeaders()
+	{
+		// Détection de mode fastCGI
+		$status = $this->status();
+		if (substr(PHP_SAPI, 0, 3) === 'cgi')
+		{
+			header('Status: '.$status.' '.self::getStatusMessage($status));
+		}
+		else
+		{
+			header(Request::getProtocol().' '.$status.' '.self::getStatusMessage($status));
+		}
+		
+		// Envoi des headers à proprement parler
+		$headers = $this->headers();
+		foreach ($headers as $name => $value )
+		{
+			header($name.': '.$value);
+		}
+		
+		// Send cookies
+		/*foreach ( $this->getCookieJar()->getResponseCookies() as $name => $cookie ) {
+			setcookie($cookie->getName(), $cookie->getValue(), $cookie->getExpires(), $cookie->getPath(), $cookie->getDomain(), $cookie->getSecure(), $cookie->getHttpOnly());
+		}*/
+	}
+	
+	/**
+	 * Envoie le contenu de la réponse
+	 * @return boolean true si le contenu a bien été envoyé, false sinon
+	 */
+	public function send()
+	{
+		// Headers
+		if (!headers_sent())
+		{
+			$this->_sendHeaders();
+		}
+		
+		// Contenu
+		if ($this->canHaveBody() and !Request::isHead())
+		{
+			parent::send();
+		}
+		
+		return true;
 	}
 	
 	/**
@@ -29,6 +221,9 @@ class HttpResponse extends Response {
 	 */
 	public function error($code = 0, $message = '', $data = NULL)
 	{
+		// Statut
+		$this->status($code);
+		
 		// Nettoyage
 		$this->clearContent();
 		
@@ -103,7 +298,7 @@ class HttpResponse extends Response {
 	 */
 	protected function _getDefaultErrorOutput($code = 0, $message = '', $data = NULL)
 	{
-		$message = empty($message) ? self::getCodeMessage($code) : $message;
+		$message = empty($message) ? self::getStatusMessage($code) : $message;
 		
 		return '<!DOCTYPE html>'."\n".
 			'<html lang="fr">'."\n".
@@ -186,38 +381,5 @@ class HttpResponse extends Response {
 		
 		// Redirection
 		$this->redirect(($previous !== false) ? self::buildUrl($previous['query'], $previous['params']) : $default);
-	}
-	
-	/**
-	 * Envoie un header 403 - accès refusé
-	 * @return void
-	 * @todo ajouter le support des pages personnalisées
-	 */
-	public function header403()
-	{
-		header(Request::getProtocol().' 403 Forbidden', true, 403);
-		exit();
-	}
-	
-	/**
-	 * Envoie un header 404 - non trouvé
-	 * @return void
-	 * @todo ajouter le support des pages personnalisées
-	 */
-	public function header404()
-	{
-		header(Request::getProtocol().' 404 Not Found', true, 404);
-		exit();
-	}
-	
-	/**
-	 * Envoie un header 500 - erreur interne
-	 * @return void
-	 * @todo ajouter le support des pages personnalisées
-	 */
-	public function header500()
-	{
-		header(Request::getProtocol().' 500 Internal Server Error', true, 500);
-		exit();
 	}
 }

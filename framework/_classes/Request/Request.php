@@ -39,6 +39,42 @@ class Request extends StaticClass {
 	 */
 	protected static $_mode;
 	/**
+	 * Méthode de la requête courante
+	 * @var string
+	 */
+	protected static $_method;
+	/**
+	 * Headers de la requête courante
+	 * @var array
+	 */
+	protected static $_headers;
+	/**
+	 * Nom des headers à récupérer en plus de ceux commençant par http-
+	 * @var array
+	 */
+    protected static $_additionalHeaders = array('content-type', 'content-length', 'php-auth-user', 'php-auth-pw', 'auth-type', 'x-requested-with');
+	/**
+	 * Le protocole HTTP en cours
+	 * @var string
+	 */
+	protected static $_protocol;
+	/**
+	 * Type de contenu attendu
+	 * @var string
+	 */
+    protected static $_contentType;
+	/**
+	 * Corps de la requête courante (si défini)
+	 * @var string
+	 */
+	protected static $_body;
+	/**
+	 * Données de requête PUT
+	 * @var array
+	 */
+	protected static $_put;
+	
+	/**
 	 * Mode de requête CLI
 	 * @var int
 	 */
@@ -53,6 +89,146 @@ class Request extends StaticClass {
 	 * @var int
 	 */
 	const MODE_AJAX = 3;
+	/**
+	 * Méthode de requête HEAD
+	 * @var string
+	 */
+	const METHOD_HEAD = 'HEAD';
+	/**
+	 * Méthode de requête GET
+	 * @var string
+	 */
+	const METHOD_GET = 'GET';
+	/**
+	 * Méthode de requête POST
+	 * @var string
+	 */
+	const METHOD_POST = 'POST';
+	/**
+	 * Méthode de requête PUT
+	 * @var string
+	 */
+	const METHOD_PUT = 'PUT';
+	/**
+	 * Méthode de requête DELETE
+	 * @var string
+	 */
+	const METHOD_DELETE = 'DELETE';
+	
+	/**
+	 * Initialise la classe
+	 * @return void
+	 */
+	public static function initClass()
+	{
+		// Méthode
+		self::$_method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : false;
+		
+		// Headers et corps
+		self::$_body = @file_get_contents('php://input');
+	}
+	
+	/**
+	 * Renvoie les headers de la requête
+	 * @return array les headers
+	 */
+	public static function getHeaders()
+	{
+		if (!isset(self::$_headers))
+		{
+			self::$_headers = array();
+			
+			// Parcours
+			foreach ($_SERVER as $name => $value)
+			{
+				// Détection des headers souhaités
+				$name = self::_convertHeaderName($name);
+				if (strpos($name, 'http-') === 0 || in_array($name, self::$_additionalHeaders))
+				{
+					self::$_headers[str_replace('http-', '', $name)] = $value;
+				}
+			}
+		}
+		
+		return self::$_headers;
+	}
+	
+	/**
+	 * Renvoie la valeur d'un header de la requête
+	 * @param string $name le nom du header
+	 * @return string la valeur trouvée, ou NULL si non définie
+	 */
+	public static function getHeader($name)
+	{
+		$headers = self::getHeaders();
+		$name = self::_convertHeaderName($name);
+		
+		return isset($headers[$name]) ? $headers[$name] : NULL;
+	}
+
+    /**
+     * Formatte un nom de header
+     * @param string $name le nom du header
+     * @return string le nom formatté
+     */
+    protected static function _convertHeaderName($name)
+    {
+        return str_replace('_', '-', strtolower($name));
+    }
+
+	/**
+	 * Renvoie le protocole en cours
+	 * @return string le protocole
+	 */
+	public static function getProtocol()
+	{
+		if (!isset(self::$_protocol))
+		{
+			if (isset($_SERVER['SERVER_PROTOCOL']))
+			{
+				self::$_protocol = $_SERVER['SERVER_PROTOCOL'];
+				if (self::$_protocol != 'HTTP/1.1' and self::$_protocol != 'HTTP/1.0')
+				{
+					self::$_protocol = 'HTTP/1.0';
+				}
+			}
+			else
+			{
+				self::$_protocol = 'HTTP/1.0';
+			}
+		}
+
+		return self::$_protocol;
+	}
+
+	/**
+	 * Renvoie le type de contenu attendu
+	 * @return string le type (par défaut : application/x-www-form-urlencoded)
+	 */
+	public static function getContentType()
+	{
+		if (!isset(self::$_contentType))
+		{
+			$header = self::getHeader('Content-type');
+			self::$_contentType = is_null($header) ? 'application/x-www-form-urlencoded' : $header;
+		}
+		
+		return self::$_contentType;
+	}
+	
+	/**
+	 * Renvoie le corps de la requête
+	 * @return string le corps de la requête, ou une chaîne vide si non défini
+	 */
+	public static function getBody()
+	{
+		if (!isset(self::$_body))
+		{
+			self::$_body = @file_get_contents('php://input');
+		}
+		
+		return self::$_body;
+	}
 	
 	/**
 	 * Définit le parseur de requête
@@ -291,6 +467,12 @@ class Request extends StaticClass {
 	 */
 	public static function issetParam($var, $ignoreEmpty = true)
 	{
+		// Détection de requête PUT
+		if (!isset(self::$_put))
+		{
+			$_REQUEST = array_merge($_REQUEST, self::_getPut());
+		}
+		
 		// Si défini
 		if (isset($_REQUEST[$var]) and (!$ignoreEmpty or is_array($_REQUEST[$var]) or strlen(trim($_REQUEST[$var])) > 0))
 		{
@@ -341,6 +523,27 @@ class Request extends StaticClass {
 	}
 	
 	/**
+	 * Vérification de la présence d'une variable dans les données PUT
+	 * @param string $var Le nom de la variable à chercher
+	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true) 
+	 * @return boolean Confirmation ou non de la présence de la variable
+	 */
+	public static function issetPUT($var, $ignoreEmpty = true)
+	{
+		$put = self::_getPut();
+		
+		// Si défini
+		if (isset($put[$var]) and (!$ignoreEmpty or is_array($put[$var]) or strlen(trim($put[$var])) > 0))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	
+	/**
 	 * Recherche dans les données GET et POST une variable et renvoie sa valeur si elle existe, sinon renvoie
 	 * $defaut. Il est possible d'ignorer les variables vides (chaînes vides).
 	 * @param string|boolean $var Le nom de la variable à chercher, ou false pour récupérer un tableau
@@ -351,6 +554,12 @@ class Request extends StaticClass {
 	 */
 	public static function getParam($var = false, $default = NULL, $ignoreEmpty = true)
 	{
+		// Détection de requête PUT
+		if (!isset(self::$_put))
+		{
+			$_REQUEST = array_merge($_REQUEST, self::_getPut());
+		}
+		
 		// Si pas de variable
 		if (!$var)
 		{
@@ -379,7 +588,7 @@ class Request extends StaticClass {
 	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true)
 	 * @return mixed Renvoi la valeur de la variable si définie, ou $default
 	 */
-	public static function getGet($var = false, $default = NULL, $ignoreEmpty = true)
+	public static function getGET($var = false, $default = NULL, $ignoreEmpty = true)
 	{
 		// Si pas de variable
 		if (!$var)
@@ -409,7 +618,7 @@ class Request extends StaticClass {
 	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true)
 	 * @return mixed Renvoi la valeur de la variable si définie, ou $default
 	 */
-	public static function getPost($var = false, $default = NULL, $ignoreEmpty = true)
+	public static function getPOST($var = false, $default = NULL, $ignoreEmpty = true)
 	{
 		// Si pas de variable
 		if (!$var)
@@ -431,23 +640,35 @@ class Request extends StaticClass {
 	}
 	
 	/**
-	 * Renvoie la chaîne de paramètres GET assemblée
-	 * @param array|string $params une chaîne de paramètres ou un tableau de paramètres additionnels 
-	 * (sous la forme clé => valeur) pour compléter ou modifier ceux existant (facultatif, défaut : array())
-	 * @return string la chaîne de paramètres, avec le ? initial si nécessaire
+	 * Recherche dans les données PUT une variable et renvoie sa valeur si elle existe, sinon renvoie
+	 * $defaut. Il est possible d'ignorer les variables vides (chaînes vides).
+	 * @param string|boolean $var Le nom de la variable à chercher, ou false pour récupérer un tableau
+	 * contenant toutes les variables de PUT (optionnel - défaut : false)
+	 * @param mixed $default La valeur par défaut à renvoyer (optionnel - défaut : NULL)
+	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true)
+	 * @return mixed Renvoi la valeur de la variable si définie, ou $default
 	 */
-	public static function getQueryString($params = array())
+	public static function getPUT($var = false, $default = NULL, $ignoreEmpty = true)
 	{
-		// Type des paramètres
-		if (is_string($params))
-		{
-			// Découpe
-			parse_str($params, $params);
-		}
+		$put = self::_getPut();
 		
-		// Asssemblage
-		$string = http_build_query(array_merge(self::getGet(), $params));
-		return (strlen($string) > 0) ? '?'.$string : $string;
+		// Si pas de variable
+		if (!$var)
+		{
+			return $put;
+		}
+		else
+		{
+			// Recherche
+			if (isset($put[$var]) and (!$ignoreEmpty or is_array($put[$var]) or strlen(trim($put[$var])) > 0))
+			{
+				return $put[$var];
+			}
+			else
+			{
+				return $default;
+			}
+		}
 	}
 	
 	/**
@@ -464,9 +685,12 @@ class Request extends StaticClass {
 			$_GET = array();
 			$_POST = array();
 			$_REQUEST = array();
+			self::$_put = array();
 		}
 		else
 		{
+			self::_getPut();
+			
 			// Effacement
 			if (isset($_GET[$var]))
 			{
@@ -475,6 +699,10 @@ class Request extends StaticClass {
 			if (isset($_POST[$var]))
 			{
 				unset($_POST[$var]);
+			}
+			if (isset(self::$_put[$var]))
+			{
+				unset(self::$_put[$var]);
 			}
 			if (isset($_REQUEST[$var]))
 			{
@@ -495,10 +723,16 @@ class Request extends StaticClass {
 		{
 			// Effacement
 			$_GET = array();
-			$_REQUEST = $_POST;
+			$_REQUEST = array_merge($_POST, self::_getPut());
 		}
 		else
 		{
+			// Détection de requête PUT
+			if (!isset(self::$_put))
+			{
+				$_REQUEST = array_merge($_REQUEST, self::_getPut());
+			}
+			
 			// Effacement
 			if (isset($_GET[$var]))
 			{
@@ -506,7 +740,12 @@ class Request extends StaticClass {
 			}
 			
 			// Paramètres globaux
-			if (isset($_POST[$var]))
+			$put = self::_getPut();
+			if (isset($put[$var]))
+			{
+				$_REQUEST[$var] = $put[$var];
+			}
+			elseif (isset($_POST[$var]))
 			{
 				$_REQUEST[$var] = $_POST[$var];
 			}
@@ -530,10 +769,16 @@ class Request extends StaticClass {
 		{
 			// Effacement
 			$_POST = array();
-			$_REQUEST = $_GET;
+			$_REQUEST = array_merge($_POST, self::_getPut());
 		}
 		else
 		{
+			// Détection de requête PUT
+			if (!isset(self::$_put))
+			{
+				$_REQUEST = array_merge($_REQUEST, self::_getPut());
+			}
+			
 			// Effacement
 			if (isset($_POST[$var]))
 			{
@@ -541,7 +786,12 @@ class Request extends StaticClass {
 			}
 			
 			// Paramètres globaux
-			if (isset($_GET[$var]))
+			$put = self::_getPut();
+			if (isset($put[$var]))
+			{
+				$_REQUEST[$var] = $put[$var];
+			}
+			elseif (isset($_GET[$var]))
 			{
 				$_REQUEST[$var] = $_GET[$var];
 			}
@@ -554,8 +804,110 @@ class Request extends StaticClass {
 	}
 	
 	/**
-	 * Renvoi le mode de la requête courante
-	 * 
+	 * Efface une variable en PUT
+	 * @param string $var le nom de la variable à effacer, ou false pour vider PUT
+	 * @return void
+	 */
+	public static function clearPUT($var)
+	{
+		// Mode
+		if (is_bool($var))
+		{
+			// Effacement
+			self::$_put = array();
+			$_REQUEST = array_merge($_GET, $_POST);
+		}
+		else
+		{
+			// Détection de requête PUT
+			if (!isset(self::$_put))
+			{
+				$_REQUEST = array_merge($_REQUEST, self::_getPut());
+			}
+			
+			// Effacement
+			if (isset(self::$_put[$var]))
+			{
+				unset(self::$_put[$var]);
+			}
+			
+			// Paramètres globaux
+			if (isset($_POST[$var]))
+			{
+				$_REQUEST[$var] = $_POST[$var];
+			}
+			elseif (isset($_GET[$var]))
+			{
+				$_REQUEST[$var] = $_GET[$var];
+			}
+			elseif (isset($_REQUEST[$var]))
+			{
+				// Effacement total
+				unset($_REQUEST[$var]);
+			}
+		}
+	}
+	
+	/**
+	 * Récupère les données de requête PUT
+	 * @return array les données
+	 */
+	protected static function _getPut()
+	{
+		if (!isset(self::$_put))
+		{
+			self::$_put = array();
+			
+			// Si mode correspondant
+			if (self::getContentType() === 'application/x-www-form-urlencoded')
+			{
+				// Analyse du corps du message
+				$body = self::getBody();
+				if (strlen($body) > 0)
+				{
+					// Décodage
+					if (function_exists('mb_parse_str'))
+					{
+						mb_parse_str($input, self::$_put);
+					}
+					else
+					{
+						parse_str($input, self::$_put);
+					}
+					
+					// Configuration
+					if (function_exists('stripslashes_deep'))
+					{
+						self::$_put = array_map('stripslashes_deep', self::$_put);
+					}
+				}
+			}
+		}
+		
+		return self::$_put;
+	}
+	
+	/**
+	 * Renvoie la chaîne de paramètres GET assemblée
+	 * @param array|string $params une chaîne de paramètres ou un tableau de paramètres additionnels 
+	 * (sous la forme clé => valeur) pour compléter ou modifier ceux existant (facultatif, défaut : array())
+	 * @return string la chaîne de paramètres, avec le ? initial si nécessaire
+	 */
+	public static function getQueryString($params = array())
+	{
+		// Type des paramètres
+		if (is_string($params))
+		{
+			// Découpe
+			parse_str($params, $params);
+		}
+		
+		// Asssemblage
+		$string = http_build_query(array_merge(self::getGET(), $params));
+		return (strlen($string) > 0) ? '?'.$string : $string;
+	}
+	
+	/**
 	 * Détermine et renvoie le mode de requête en cours selon les paramètres d'environnement
 	 * @return int la constante correspondant au mode en cours :
 	 * 	 - Request::MODE_CLI : mode autonome de php
@@ -588,7 +940,7 @@ class Request extends StaticClass {
 	
 	/**
 	 * Indique si une requête est de type ligne de commande
-	 * @return boolean une confirmation si le mode détecté est la ligne de commande
+	 * @return boolean une confirmation
 	 */
 	public static function isCLI()
 	{
@@ -598,7 +950,7 @@ class Request extends StaticClass {
 	
 	/**
 	 * Indique si une requête est de type AJAX
-	 * @return boolean une confirmation si le mode détecté est AJAX
+	 * @return boolean une confirmation
 	 */
 	public static function isAjax()
 	{
@@ -608,11 +960,75 @@ class Request extends StaticClass {
 	
 	/**
 	 * Indique si une requête est de type Web (standard)
-	 * @return boolean une confirmation si le mode détecté est une requête web
+	 * @return boolean une confirmation
 	 */
 	public static function isWeb()
 	{
 		// Test
 		return (self::getMode() == self::MODE_WEB);
+	}
+	
+	/**
+	 * Renvoie la méthode de requête courante
+	 * @return string|boolean false si non défini, ou la constante correspondant à la méthode en cours :
+	 * 	 - Request::METHOD_HEAD
+	 * 	 - Request::METHOD_GET
+	 * 	 - Request::METHOD_POST
+	 * 	 - Request::METHOD_PUT
+	 * 	 - Request::METHOD_DELETE
+	 */
+	public static function getMethod()
+	{
+		if (!isset(self::$_mode))
+		{
+			self::$_method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : false;
+		}
+		
+		return self::$_method;
+	}
+	
+	/**
+	 * Indique si une requête utilise la méthode GET
+	 * @return boolean une confirmation
+	 */
+	public static function isGet()
+	{
+		return (self::getMethod() === self::METHOD_GET);
+	}
+
+	/**
+	 * Indique si une requête utilise la méthode POST
+	 * @return boolean une confirmation
+	 */
+	public static function isPost()
+	{
+		return (self::getMethod() === self::METHOD_POST);
+	}
+
+	/**
+	 * Indique si une requête utilise la méthode PUT
+	 * @return boolean une confirmation
+	 */
+	public static function isPut()
+	{
+		return (self::getMethod() === self::METHOD_PUT);
+	}
+
+	/**
+	 * Indique si une requête utilise la méthode DELETE
+	 * @return boolean une confirmation
+	 */
+	public static function isDelete()
+	{
+		return (self::getMethod() === self::METHOD_DELETE);
+	}
+
+	/**
+	 * Indique si une requête utilise la méthode HEAD
+	 * @return boolean une confirmation
+	 */
+	public static function isHead()
+	{
+		return (self::getMethod() === self::METHOD_HEAD);
 	}
 }
