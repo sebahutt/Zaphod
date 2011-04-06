@@ -5,6 +5,7 @@
 class String extends StaticClass {
 	/**
 	 * Nettoyage d'une chaîne de tous ses accents et ses caractères spéciaux, par exemple pour des comparaisons
+	 * 
 	 * @param string $string la chaine à nettoyer
 	 * @return string la chaine nettoyée
 	 */
@@ -18,6 +19,7 @@ class String extends StaticClass {
 	/**
 	 * Nettoyage d'une chaîne pour en faire un nom de fichier url valide. On part du principe que seul le nom de fichier est passé,
 	 * donc tous les / sont convertis. En revanche, l'extension est conservée telle quelle.
+	 * 
 	 * @param string $name le nom à nettoyer
 	 * @return string le nom nettoyé
 	 */
@@ -58,12 +60,12 @@ class String extends StaticClass {
 		$pathinfo['filename'] = trim(preg_replace(array_keys($map), array_values($map), strtolower($pathinfo['filename'])));
 		$pathinfo['filename'] = preg_replace('/_{2,}/', '_', str_replace(' ', '_', $pathinfo['filename']));
 		
-		// Renvoi
 		return $pathinfo['filename'].$pathinfo['extension'];
 	}
 	
 	/**
 	 * Découpe une chaîne à la longueur souhaitée si nécessaire, avec des points de suite
+	 * 
 	 * @param string $string la chaîne à découper
 	 * @param int $length la longueur maximale
 	 * @param string $replace le caractère à utiliser pour masquer la partie coupée (facultatif, défaut : '...')
@@ -80,6 +82,7 @@ class String extends StaticClass {
 	
 	/**
 	 * Découpe un nom de fichier à la longueur souhaitée si nécessaire, avec des points de suite
+	 * 
 	 * @param string $string la chaîne à découper
 	 * @param int $length la longueur maximale
 	 * @param string $replace le caractère à utiliser pour masquer la partie coupée (facultatif, défaut : '..')

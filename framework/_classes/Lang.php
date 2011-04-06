@@ -27,6 +27,7 @@ class Lang
 	
 	/**
 	 * Constructeur de la classe
+	 * 
 	 * @param string|array|boolean la langue à utiliser ou une liste de langues par priorité, ou false pour une détection automatique
 	 */
 	public function __construct($lang = false)
@@ -86,6 +87,7 @@ class Lang
 	
 	/**
 	 * Obtention de la locale active
+	 * 
 	 * @param string|boolean $default la valeur par défaut si aucune locale n'est active
 	 * @return string|boolean la locale, ou $default si aucune n'est active
 	 */
@@ -96,6 +98,7 @@ class Lang
 	
 	/**
 	 * Obtention de traduction
+	 * 
 	 * @param string $text le texte à traduire
 	 * @return string la traduction trouvée, ou le texte original si aucune n'est trouvée
 	 */
@@ -106,6 +109,7 @@ class Lang
 	
 	/**
 	 * Affiche une traduction
+	 * 
 	 * @param string $text le texte à traduire
 	 * @return void
 	 */
@@ -116,6 +120,7 @@ class Lang
 	
 	/**
 	 * Affiche une traduction en échappant les apostrophes
+	 * 
 	 * @param string $text le texte à traduire
 	 * @return void
 	 */
@@ -126,6 +131,7 @@ class Lang
 	
 	/**
 	 * Affiche une traduction soit au singulier soit au pluriel
+	 * 
 	 * @param int $value la valeur à tester
 	 * @param string $none le texte pour une valeur de 0 (paramètre facultatif)
 	 * @param string $singular le texte pour le singulier (et 0 si le paramètre $none n'est pas précisé)
@@ -157,6 +163,7 @@ class Lang
 	
 	/**
 	 * Affiche une traduction soit au singulier soit au pluriel
+	 * 
 	 * @param int $value la valeur à tester
 	 * @param string $none le texte pour une valeur de 0 (paramètre facultatif)
 	 * @param string $singular le texte pour le singulier (et 0 si le paramètre $none n'est pas précisé)
@@ -170,6 +177,7 @@ class Lang
 	
 	/**
 	 * Définit la locale par défaut
+	 * 
 	 * @param string $loale la locale par défaut
 	 * @return void
 	 */

@@ -4,22 +4,16 @@
  */
 interface iRequestParser {
 	/**
-	 * Tente d'analyser la requête
-	 * @return boolean la confirmation que la requête a pu être traitée
+	 * Vérifie si la classe courante est en mesure d'analyser la requête
+	 * 
+	 * @param string $request la requête à analyser, ou NULL pour utiliser l'environnement
+	 * @return iRequestParser|boolean une instance de la classe si la requête peut être gérée, false sinon
 	 */
-	public function run();
-	
-	/**
-	 * Tente d'effectuer la redirection interne de la requête. Si la redirection échoue, la configuration initiale est conservée.
-	 * Les références à la requête initiale sont conservées (url, etc...), seules les fonctions relatives au routage
-	 * doivent être impactées (getBaseQuery, par exemple)
-	 * @param string $request la nouvelle requête à prendre en compte
-	 * @return boolean la confirmation que la requête a pu être traitée
-	 */
-	public function redirect($request);
+	public static function match($request = NULL);
 	
 	/**
 	 * Renvoie la requête de référence pour le routage
+	 * 
 	 * @return string la requête
 	 */
 	public function getRouteQuery();

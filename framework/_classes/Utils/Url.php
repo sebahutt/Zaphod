@@ -21,6 +21,7 @@ class Url {
 	
 	/**
 	 * Constructeur de la classe
+	 * 
 	 * @param string l'url à utiliser
 	 */
 	public function __construct($url)
@@ -65,6 +66,7 @@ class Url {
 	
 	/**
 	 * Découpe des composantes de host en : subdomain, domain et tld
+	 * 
 	 * @return void
 	 */
 	protected function _parseHost()
@@ -103,6 +105,7 @@ class Url {
 	
 	/**
 	 * Méthode magique d'accès aux propriétés de l'élément
+	 * 
 	 * @param string $name la propriété à récupérer
 	 * @return mixed la valeur si définie, NULL sinon
 	 */
@@ -113,6 +116,7 @@ class Url {
 	
 	/**
 	 * Méthode magique de test de définition
+	 * 
 	 * @param string $name la propriété à tester
 	 * @return void
 	 */
@@ -123,6 +127,7 @@ class Url {
 	
 	/**
 	 * Méthode magique d'écriture dans les propriétés de l'élément
+	 * 
 	 * @param string $name la propriété à écrire
 	 * @param mixed $value la valeur à écrire
 	 * @return void
@@ -134,6 +139,7 @@ class Url {
 	
 	/**
 	 * Méthode magique d'effacement d'une propriété
+	 * 
 	 * @param string $name la propriété à effacer
 	 * @return void
 	 */
@@ -144,6 +150,7 @@ class Url {
 	
 	/**
 	 * Modifie une des données analysées de l'url fournie
+	 * 
 	 * @param string $name le nom de la donnée à modifier
 	 * @param mixed $value la valeur à affecter
 	 * @return void
@@ -189,6 +196,7 @@ class Url {
 	
 	/**
 	 * Indique si l'url fournie est basée sur une IP
+	 * 
 	 * @return boolean la confirmation que l'url est une ip ou non
 	 */
 	public function isIP()
@@ -198,6 +206,7 @@ class Url {
 	
 	/**
 	 * Renvoie le domaine
+	 * 
 	 * @return string le domaine (nom + extension) ou NULL si inexistant
 	 */
 	public function getDomain()
@@ -221,6 +230,7 @@ class Url {
 	
 	/**
 	 * Lit la valeur d'un paramètre de la requête
+	 * 
 	 * @param string $name le nom du paramètre
 	 * @return mixed la valeur si définie, NULL sinon
 	 */
@@ -231,6 +241,7 @@ class Url {
 	
 	/**
 	 * Ajoute un paramètre à la requête. Si il existe déjà, il est modifié
+	 * 
 	 * @param string $name le nom du paramètre
 	 * @param string|int $value la valeur
 	 * @return Url l'objet pour chaînage
@@ -246,6 +257,7 @@ class Url {
 
 	/**
 	 * Supprime un paramètre de la requête.
+	 * 
 	 * @param string $name le nom du paramètre
 	 * @return Url l'objet pour chaînage
 	 */
@@ -262,6 +274,7 @@ class Url {
 	
 	/**
 	 * Renvoie l'url avec tous ses composants
+	 * 
 	 * @return string l'url finale
 	 */
 	public function get()
@@ -303,7 +316,6 @@ class Url {
 			$url .= '#'.$this->_parts['fragment'];
 		}
 		
-		// Renvoi
 		return $url;
 	}
 }

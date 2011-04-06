@@ -27,6 +27,7 @@ class Option extends BaseClass
 	
 	/**
 	 * Renvoie l'objet utilisateur de rattachement
+	 * 
 	 * @return User|boolean l'objet utilisateur ou false si aucun
 	 */
 	public function getUser()
@@ -41,6 +42,7 @@ class Option extends BaseClass
 	
 	/**
 	 * Renvoie la valeur de l'option
+	 * 
 	 * @param mixed $default la valeur par défaut si l'option n'existe pas (facultatif, défaut : NULL)
 	 * @return mixed la valeur trouvée, ou $default
 	 */
@@ -51,6 +53,7 @@ class Option extends BaseClass
 	
 	/**
 	 * Mise à jour de la valeur de l'option
+	 * 
 	 * @param mixed $value la valeur à affecter
 	 * @return void
 	 */
@@ -62,6 +65,7 @@ class Option extends BaseClass
 	
 	/**
 	 * Obtention d'une option par son id
+	 * 
 	 * @param int $id l'identifiant du fichier
 	 * @return Option|boolean l'objet option si trouvé, ou false si inexistant
 	 */
@@ -82,9 +86,11 @@ class Option extends BaseClass
 	
 	/**
 	 * Obtention d'option par son nom
+	 * 
 	 * @param string $name le nom de l'option
 	 * @param int $id_user un identifiant d'utilisateur pour obtenir l'option liée à cet utilisateur, 
 	 * false pour une option générale ou NULL pour ne pas filtrer (facultatif, défaut : NULL)
+	 * 
 	 * @return array la liste des options correspondantes
 	 */
 	public static function getByName($name, $id_user = NULL)
@@ -110,6 +116,7 @@ class Option extends BaseClass
 	
 	/**
 	 * Charge le cache des options globales
+	 * 
 	 * @return void
 	 */
 	protected static function _loadCache()
@@ -132,6 +139,7 @@ class Option extends BaseClass
 	
 	/**
 	 * Obtention de la valeur d'une option par son nom (renvoie la première valeur trouvée)
+	 * 
 	 * @param string $name le nom de l'option
 	 * @param mixed $default la valeur par défaut si l'option n'existe pas (facultatif, défaut : NULL)
 	 * @return mixed la valeur trouvée, ou $default
@@ -146,6 +154,7 @@ class Option extends BaseClass
 	
 	/**
 	 * Affectation de la valeur d'une option par son nom (renvoie la première valeur trouvée)
+	 * 
 	 * @param string $name le nom de l'option
 	 * @param mixed $value la valeur à affecter
 	 * @return void
@@ -170,6 +179,7 @@ class Option extends BaseClass
 	
 	/**
 	 * Obtention des options d'un utilisateur
+	 * 
 	 * @param int $id_user l'id de l'utilisateur
 	 * @return array la liste des options trouvées
 	 */

@@ -5,6 +5,7 @@
 class History extends StaticClass {
 	/**
 	 * Ajoute la requête à l'historique
+	 * 
 	 * @param string $query la requête
 	 * @param array $params les paramètres (facultatif, défaut : array())
 	 * @return void
@@ -41,6 +42,7 @@ class History extends StaticClass {
 	
 	/**
 	 * Nettoie l'historique jusqu'à la requête
+	 * 
 	 * @param string $query la requête
 	 * @return void
 	 */
@@ -67,6 +69,7 @@ class History extends StaticClass {
 	
 	/**
 	 * Met à jour les paramètres de la dernière occurence de la requête dans l'historique (ex: requête AJAX sur la même page)
+	 * 
 	 * @param string $query la requête
 	 * @param array $params les paramètres (facultatif, défaut : array())
 	 * @return void
@@ -92,6 +95,7 @@ class History extends StaticClass {
 	
 	/**
 	 * Renvoie l'url à l'index donné dans l'historique
+	 * 
 	 * @param int $index l'index (toujours négatif) dans l'historique (défaut : -1)
 	 * @return array|boolean un tableau avec 2 index ('query' et 'params'), ou false si aucune
 	 */
@@ -110,6 +114,7 @@ class History extends StaticClass {
 	
 	/**
 	 * Renvoie l'url de la première page dans l'historique différente de la requête fournie
+	 * 
 	 * @param string $query la requête dont on recherche la page précédente, ou NULL pour la récupérer automatiquement (facultatif, défaut : NULL)
 	 * @return array|boolean un tableau avec 2 index ('query' et 'params'), ou false si aucune
 	 */

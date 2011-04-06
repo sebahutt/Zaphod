@@ -24,11 +24,12 @@ class HttpResponse extends Response {
 		// Init
 		$this->_status = 200;
 		$this->_headers = array();
-		$this->header('Content-Type', 'text/html');
+		$this->setHeader('Content-Type', 'text/html; charset=utf-8');
 	}
 
 	/**
 	 * Définit ou renvoie le code de statut de la requête
+	 *
 	 * @param int $status le statut à affecter, ou NULL pour ne pas modifier
 	 * @return int le statut actuel
 	 * @throws SCException
@@ -41,11 +42,11 @@ class HttpResponse extends Response {
 			// Sécurisation
 			if (headers_sent())
 			{
-				throw new SCException('Les headers ont déjà été envoyés, impossible de modifier la réponse', 999, 'Status : '.$status);
+				//throw new SCException('Les headers ont déjà été envoyés, impossible de modifier la réponse');
 			}
 			if (!self::statusExists($status))
 			{
-				throw new SCException('Statut HTTP pour la réponse non valide', 999, 'Status : '.$status);
+				throw new SCException('Statut HTTP pour la réponse non valide ('.$status.')');
 			}
 			
 			// Affectation
@@ -65,39 +66,47 @@ class HttpResponse extends Response {
 
 	/**
 	 * Renvoie l'intégralité des headers définis
+	 *
 	 * @return array
 	 */
-	public function headers()
+	public function getHeaders()
 	{
 		return $this->_headers;
 	}
 
 	/**
-	 * Définit ou renvoie un header de réponse HTTP
+	 * Renvoie un header de réponse HTTP
+	 *
 	 * @param string $name le nom du header
-	 * @param string $value la valeur
 	 * @return string la valeur du header si défini, ou NULL si pas défini
-	 * @throws SCException
 	 */
-	public function header($name, $value = NULL)
+	public function getHeader($name)
 	{
-		// Si modification
-		if (!is_null($value))
-		{
-			// Sécurisation
-			if (headers_sent())
-			{
-				throw new SCException('Les headers ont déjà été envoyés, impossible de modifier la réponse', 999, 'Header : '.$name.', valeur : '.$value);
-			}
-			
-			$this->_headers[$name] = $value;
-		}
-		
 		return isset($this->_headers[$name]) ? $this->_headers[$name] : NULL;
 	}
 
 	/**
+	 * Définit un header de réponse HTTP
+	 *
+	 * @param string $name le nom du header
+	 * @param string $value la valeur
+	 * @return void
+	 * @throws SCException
+	 */
+	public function setHeader($name, $value = NULL)
+	{
+		// Sécurisation
+		if (headers_sent())
+		{
+			throw new SCException('Les headers ont déjà été envoyés, impossible de modifier la réponse (Header : '.$name.', valeur : '.$value.')');
+		}
+		
+		$this->_headers[$name] = $value;
+	}
+
+	/**
 	 * Efface un header de réponse HTTP
+	 *
 	 * @param string $name le nom du header
 	 * @return void
 	 */
@@ -110,33 +119,8 @@ class HttpResponse extends Response {
 	}
 	
 	/**
-	 * Définit le contenu de la réponse
-	 * @param mixed $content le contenu à préparer et à afficher
-	 * @return boolean true si le contenu a bien été ajouté, false sinon
-	 */
-	public function content($content)
-	{
-		parent::content($content);
-		
-		// Mise à jour de la longueur
-		$this->header('Content-Length', $this->contentLength());
-	}
-	
-	/**
-	 * Ajoute du contenu à la réponse existante
-	 * @param mixed $content le contenu à préparer et à afficher
-	 * @return boolean true si le contenu a bien été ajouté, false sinon
-	 */
-	public function addContent($content)
-	{
-		parent::addContent($content);
-		
-		// Mise à jour de la longueur
-		$this->header('Content-Length', $this->contentLength());
-	}
-	
-	/**
 	 * Fonction interne de formattage du contenu
+	 *
 	 * @param string $content le contenu à formatter
 	 * @return string le contenu formatté
 	 */
@@ -154,6 +138,7 @@ class HttpResponse extends Response {
 
 	/**
 	 * Indique si la requête peut avoir du contenu
+	 *
 	 * @return bool
 	 */
 	public function canHaveBody()
@@ -163,6 +148,7 @@ class HttpResponse extends Response {
 
 	/**
 	 * Envoie les headers HTTP
+	 *
 	 * @return void
 	 */
 	protected function _sendHeaders()
@@ -179,7 +165,7 @@ class HttpResponse extends Response {
 		}
 		
 		// Envoi des headers à proprement parler
-		$headers = $this->headers();
+		$headers = $this->getHeaders();
 		foreach ($headers as $name => $value )
 		{
 			header($name.': '.$value);
@@ -193,6 +179,7 @@ class HttpResponse extends Response {
 	
 	/**
 	 * Envoie le contenu de la réponse
+	 *
 	 * @return boolean true si le contenu a bien été envoyé, false sinon
 	 */
 	public function send()
@@ -214,9 +201,10 @@ class HttpResponse extends Response {
 	
 	/**
 	 * Indique qu'une erreur est intervenue pendant le traitement de la requête, et termine la réponse
+	 *
 	 * @param int $code le code d'erreur (facultatif, défaut : 0)
 	 * @param string $message un message additonnel (facultatif, défaut : '')
-	 * @param mixed $data toute données additonnelle (facultatif, défaut : NULL)
+	 * @param mixed $data toutes données additonnelle (facultatif, défaut : NULL)
 	 * @return void
 	 */
 	public function error($code = 0, $message = '', $data = NULL)
@@ -252,6 +240,7 @@ class HttpResponse extends Response {
 	
 	/**
 	 * Tente de charger une page d'erreur personnalisée
+	 *
 	 * @param string $custom le chemin fichier/ressource à charger
 	 * @param int $code le code d'erreur (facultatif, défaut : 0)
 	 * @param string $message un message additonnel (facultatif, défaut : '')
@@ -291,6 +280,7 @@ class HttpResponse extends Response {
 	
 	/**
 	 * Construit l'affichage d'erreur par défaut
+	 *
 	 * @param int $code le code d'erreur (facultatif, défaut : 0)
 	 * @param string $message un message additonnel (facultatif, défaut : '')
 	 * @param mixed $data toute données additonnelle (facultatif, défaut : NULL)
@@ -313,73 +303,134 @@ class HttpResponse extends Response {
 	}
 	
 	/**
-	 * Envoie un header location de redirection
-	 * @param string $target la page à charger
-	 * @return void
+	 * Indique si la réponse gère la sortie de données de debug
+	 *
+	 * @return boolean une confirmation
 	 */
-	public function redirect($target)
+	public function canDisplayDebug()
 	{
-		// Mode
-		if (preg_match('/^[0-9a-z]+:\//i', $target))
-		{
-			header('Location: '.$target);
-		}
-		else
-		{
-			header('Location: '.URL_BASE.$target);
-		}
-		exit();
+		return true;
 	}
 	
 	/**
-	 * Cherche si une page de redirection est définie ('redirect' en GET ou POST), sinon retourne à la page précédente, 
-	 * ou à la page par défaut si aucune page précédente n'est définie
-	 * @param string $default l'url par défaut si aucune page précédente n'est trouvée (défaut : accueil)
-	 * @param string $append une chaîne à rajouter à l'url de redirection si elle est définie
+	 * Affiche des données de debug
+	 *
+	 * @param string|array $output un ligne ou un tableau de lignes à afficher
+	 * @return boolean une confirmation que les données ont bien été affichées
+	 */
+	public function displayDebug($output)
+	{
+		// Affichage
+		echo '<pre style="position: fixed; z-index: 999999; left: 20px; top: 20px; '.
+						 'background: rgba(0, 0, 0, 0.5); padding: 10px; color: white; '.
+						 'font: 10px/14px "Courier New", Courier, monospace;" '.
+						 'onclick="$(this).remove()"'.
+						 '>'.implode("\n", utf8entities((array)$output)).'</pre>';
+		
+		return true;
+	}
+	
+	/**
+	 * Envoie le contenu de la réponse (si nécessaire) et indique la requête comme terminée
+	 *
+	 * @return boolean true si le contenu a bien été envoyé, false sinon
+	 */
+	public function end()
+	{
+		parent::end();
+		
+		// Actions
+		if ($this->_status < 300 or $this->_status >= 400)
+		{
+			Env::callActions('log.output');
+		}
+	}
+	
+	/**
+	 * Envoie un header location de redirection
+	 *
+	 * @param string $target la page à charger
+	 * @param int $code le header de statut à renvoyer avec la redirection (facultatif, défaut : 302)
 	 * @return void
 	 */
-	public function redirectOrGoBack($default = '', $append = '')
+	public function redirect($target, $code = 302)
+	{
+		// Si url locale
+		if (!preg_match('/^[0-9a-z]+:\//i', $target))
+		{
+			$target = URL_BASE.$target;
+		}
+		
+		// Log
+		Log::info('Redirection HTTP vers '.$target.' ('.$code.')');
+		
+		// Actions
+		Env::callActions('response.redirect');
+		
+		// Construction
+		$this->status($code);
+		$this->setHeader('Location', $target);
+		$this->clearContent($target);
+		
+		// Termine la requête
+		Request::stop();
+	}
+	
+	/**
+	 * Cherche si une page de redirection est définie ('redirect' en GET ou POST), sinon retourne à la page précédente,
+	 * ou à la page par défaut si aucune page précédente n'est définie
+	 *
+	 * @param string $default l'url par défaut si aucune page précédente n'est trouvée (défaut : accueil)
+	 * @param string $append une chaîne à rajouter à l'url de redirection si elle est définie
+	 * @param int $code le header de statut à renvoyer avec la redirection (facultatif, défaut : 302)
+	 * @return void
+	 */
+	public function redirectOrGoBack($default = '', $append = '', $code = 302)
 	{
 		if (Request::issetParam('redirect'))
 		{
-			$this->redirect(trim(Request::getParam('redirect').$append));
+			$this->redirect(trim(Request::getParam('redirect').$append), $code);
 		}
 		else
 		{
-			$this->goBack($default);
+			$this->goBack($default, $code);
 		}
 	}
 	
 	/**
 	 * Cherche si une page de redirection est définie ('redirect' en GET ou POST), sinon va à la page par défaut
+	 *
 	 * @param string $default l'url par défaut si aucune page de redirection n'est trouvée (défaut : accueil)
 	 * @param string $append une chaîne à rajouter à l'url de redirection si elle est définie
+	 * @param int $code le header de statut à renvoyer avec la redirection (facultatif, défaut : 302)
 	 * @return void
 	 */
-	public function redirectOrGo($default = '', $append = '')
+	public function redirectOrGo($default = '', $append = '', $code = 302)
 	{
 		if (Request::issetParam('redirect'))
 		{
-			$this->redirect(trim(Request::getParam('redirect').$append));
+			$this->redirect(trim(Request::getParam('redirect').$append), $code);
 		}
 		else
 		{
-			$this->redirect($default);
+			$this->redirect($default, $code);
 		}
 	}
 	
 	/**
 	 * Retourne à la page précédente, ou à la page par défaut si aucune page précédente n'est définie
+	 *
 	 * @param string $default la requête par défaut si aucune page précédente n'est trouvée (défaut : '')
+	 * @param int $code le header de statut à renvoyer avec la redirection (facultatif, défaut : 302)
 	 * @return void
 	 * throws SCException
 	 */
-	public function goBack($default = '')
+	public function goBack($default = '', $code = 302)
 	{
 		// Recherche de la page précédente
 		$previous = History::getPrevious();
 		
 		// Redirection
-		$this->redirect(($previous !== false) ? self::buildUrl($previous['query'], $previous['params']) : $default);
+		$this->redirect(($previous !== false) ? self::buildUrl($previous['query'], $previous['params']) : $default, $code);
 	}
 }

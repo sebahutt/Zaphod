@@ -2,7 +2,12 @@
 /**
  * Objet de route liée à une page dans la base
  */
-class HttpPageRoute implements iRoute {
+class HttpPageRoute implements iRequestRoute {
+	/**
+	 * Objet d'analyse de la requête
+	 * @var iRequestParser
+	 */
+	protected $_parser;
 	/**
 	 * Page chargée par la requête
 	 * @var Page
@@ -35,24 +40,52 @@ class HttpPageRoute implements iRoute {
 	protected $_queryParams;
 	
 	/**
-	 * Tente de router la requête courante
-	 * @param iRequestParser $parser le parseur de requête
-	 * @return boolean true si la requête a pu être mappée, false sinon
+	 * Constructeur
+	 *
+	 * @param iRequestParser $parser l'objet d'analyse de la requête
+	 * @param Page $page l'objet de la page routée
 	 */
-	public function match($parser)
+	public function __construct($parser, $page)
+	{
+		// Mémorisation
+		$this->_parser = $parser;
+		$this->_page = $page;
+		
+		// Log
+		Log::info('Route active : HttpPageRoute ('.$this->_page->get('id_page').')');
+	}
+	
+	/**
+	 * Tente de router la requête courante
+	 *
+	 * @param iRequestParser $parser le parseur de requête
+	 * @return iRequestRoute|boolean une instance de la classe si la requête a pu être mappée, false sinon
+	 */
+	public static function match($parser)
 	{
 		// Chargement de la page
-		$this->_page = Page::getByUrl($parser->getRouteQuery());
-		if (!$this->_page)
+		$page = Page::getByUrl($parser->getRouteQuery());
+		if (!$page)
 		{
 			return false;
 		}
 		
-		return true;
+		return new HttpPageRoute($parser, $page);
+	}
+	
+	/**
+	 * Renvoie l'objet parser de rattachement
+	 *
+	 * @return iRequestParser l'objet parser
+	 */
+	public function getParser()
+	{
+		return $this->_parser;
 	}
 	
 	/**
 	 * Vérifie la présence de la ressource cible, sa capacité à s'exécuter et les droits d'accès si nécessaire
+	 *
 	 * @return boolean|int true si la ressource demandée est accessible, ou un code d'erreur
 	 */
 	public function init()
@@ -120,33 +153,8 @@ class HttpPageRoute implements iRoute {
 	}
 	
 	/**
-	 * Tente d'effectuer la redirection de la route vers une nouvelle ressource et de l'initialiser.
-	 * Les références à la requête initiale sont conservées (paramètres, etc...), en revanche les actions sont
-	 * désormais relatives à la nouvelle ressource. Si la redirection échoue, la configuration initiale est conservée.
-	 * Note : la route n'a pas forcément été intialisée avant.
-	 * @param iRequestParser $parser le parseur de requête
-	 * @return boolean true si la requête a pu être mappée, false sinon
-	 */
-	public function redirect($parser)
-	{
-		$page = Page::getByUrl($parser->getRouteQuery());
-		if (!$page)
-		{
-			return false;
-		}
-		
-		// Mémorisation
-		$this->_page = $page;
-		
-		// Nettoyage
-		$this->_controler = NULL;
-		$this->_action = false;
-		
-		return true;
-	}
-	
-	/**
 	 * Effectue toutes les actions nécessaires à la cloture de la requête
+	 *
 	 * @return void
 	 */
 	public function close()
@@ -156,6 +164,7 @@ class HttpPageRoute implements iRoute {
 	
 	/**
 	 * Renvoie la partie de la requête correspondant à l'url réelle de la page
+	 *
 	 * @return string la requête
 	 */
 	public function getPageQuery()
@@ -165,6 +174,7 @@ class HttpPageRoute implements iRoute {
 	
 	/**
 	 * Renvoie la partie de la requête correspondant aux paramètres additionnels
+	 *
 	 * @return string la requête
 	 */
 	public function getParamQuery()
@@ -179,6 +189,7 @@ class HttpPageRoute implements iRoute {
 	 * 		- la page /list chargée avec la requête /list/group/1/page/2 va renvoyer array( 'group' => 1, 'page' => 2 )
 	 * 		- la page /edit chargée avec la requête /edit/user/settings/1 va renvoyer array( 'user' => 1, 'settings' => 1 )
 	 * 		- la page /edit chargée avec la requête /edit/user/1/settings va renvoyer array( 'user' => 1 )
+	 *
 	 * @return array les paramètres trouvés
 	 */
 	public function getQueryParams()
@@ -188,6 +199,7 @@ class HttpPageRoute implements iRoute {
 	
 	/**
 	 * Renvoie la valeur d'un identifiant contenu dans l'url si existant
+	 *
 	 * @param string $name le nom de l'identifiant (partie précédente de l'url)
 	 * @param mixed $default la valeur par défaut
 	 * @return mixed la valeur si existant, sinon $default
@@ -199,6 +211,7 @@ class HttpPageRoute implements iRoute {
 	
 	/**
 	 * Obtient la liste des actions pré-requêtes
+	 *
 	 * @return boolean|array la liste des action, ou false si aucune
 	 */
 	public function getActionRequest()
@@ -208,6 +221,7 @@ class HttpPageRoute implements iRoute {
 	
 	/**
 	 * Renvoie la page en cours
+	 *
 	 * @return Page|boolean l'objet de la page, ou false si inexistant
 	 */
 	public function getPage()
@@ -217,6 +231,7 @@ class HttpPageRoute implements iRoute {
 	
 	/**
 	 * Renvoie le controleur de la page en cours
+	 *
 	 * @return DefaultControler le controleur
 	 */
 	public function getControler()

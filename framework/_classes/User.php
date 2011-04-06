@@ -50,6 +50,9 @@ class User extends BaseClass
 		if (Request::getGET('logout', 0) == 1)
 		{
 			self::logOut();
+			
+			// Log
+			Log::info('Utilisateur courant déconnecté');
 		}
 		
 		// Nettoyage
@@ -58,6 +61,7 @@ class User extends BaseClass
 	
 	/**
 	 * Indique si l'utilisateur est un utilisateur par défaut
+	 *
 	 * @return boolean une confirmation
 	 */
 	public function isDefault()
@@ -67,6 +71,7 @@ class User extends BaseClass
 	
 	/**
 	 * Indique si l'utilisateur est un administrateur
+	 *
 	 * @return boolean une confirmation
 	 */
 	public function isAdmin()
@@ -76,6 +81,7 @@ class User extends BaseClass
 	
 	/**
 	 * Renvoie l'administrateur de l'utilisateur, si existant
+	 *
 	 * @return User|boolean l'objet utilisateur si existant, false sinon
 	 */
 	public function getAdmin()
@@ -86,12 +92,12 @@ class User extends BaseClass
 			$this->_admin = is_null($this->admin) ? false : self::getUser($this->admin);
 		}
 		
-		// Renvoi
 		return $this->_admin;
 	}
 	
 	/**
 	 * Renvoie le nom complet de l'utilisateur
+	 *
 	 * @param string $sep la chaîne de séparation entre les parties du nom (facultatif, défaut : ' ')
 	 * @param string $default lenom par défaut si aucune information n'est disponible (facultatif, défaut : '(sans nom)')
 	 * @return string le nom complet
@@ -116,6 +122,7 @@ class User extends BaseClass
 	
 	/**
 	 * Renvoie l'objet statut de l'utilisateur
+	 *
 	 * @return Statut l'objet statut
 	 */
 	public function getStatut()
@@ -126,12 +133,12 @@ class User extends BaseClass
 			$this->_statut = Statut::getStatut($this->statut);
 		}
 		
-		// Renvoi
 		return $this->_statut;
 	}
 	
 	/**
 	 * Charge le cache des options globales
+	 *
 	 * @return void
 	 */
 	protected function _loadOptionsCache()
@@ -153,6 +160,7 @@ class User extends BaseClass
 	
 	/**
 	 * Obtention de la valeur d'une option par son nom (renvoie la première valeur trouvée)
+	 *
 	 * @param string $name le nom de l'option
 	 * @param mixed $default la valeur par défaut si l'option n'existe pas (facultatif, défaut : NULL)
 	 * @return mixed la valeur trouvée, ou $default
@@ -167,6 +175,7 @@ class User extends BaseClass
 	
 	/**
 	 * Affectation de la valeur d'une option par son nom (renvoie la première valeur trouvée)
+	 *
 	 * @param string $name le nom de l'option
 	 * @param mixed $value la valeur à affecter
 	 * @return void
@@ -197,6 +206,7 @@ class User extends BaseClass
 	
 	/**
 	 * Obtention du user courant
+	 *
 	 * @return User l'utilisateur courant
 	 * @static
 	 */
@@ -228,12 +238,12 @@ class User extends BaseClass
 			}
 		}
 		
-		// Renvoi
 		return self::$_current;
 	}
 	
 	/**
 	 * Obtention d'un user
+	 *
 	 * @param int $id_user l'identifiant de l'utilisateur
 	 * @return User|boolean l'utilisateur désiré, ou false si inexistant
 	 */
@@ -254,9 +264,11 @@ class User extends BaseClass
 	
 	/**
 	 * Liste des users enregistrés
+	 *
 	 * @param array $options les options de chargement (facultatif, défaut : array())
 	 * 					- actif : état actif des utilisateurs (0 ou 1) - défaut : NULL
 	 * 					- statut : les ou les statuts des utilisateurs - défaut : false
+	 *
 	 * @return array la liste des users
 	 */
 	public static function getList($options = array())
@@ -303,6 +315,7 @@ class User extends BaseClass
 	
 	/**
 	 * Identification de l'utilisateur courant
+	 *
 	 * @param string $login le nom d'utilisateur
 	 * @param string $pass le mot de passe
 	 * @return User|boolean l'user désiré, ou false si identification non valide
@@ -326,6 +339,9 @@ class User extends BaseClass
 				// Date de connection
 				Database::get(self::$server)->exec('UPDATE `users` SET `last_connect`=NOW() WHERE `id_user`=?', array(self::$_current->id_user));
 				
+				// Log
+				Log::info('Utilisateur courant identifié : '.self::$_current->first_name.' '.self::$_current->last_name);
+				
 				return self::$_current;
 			}
 		}
@@ -336,6 +352,7 @@ class User extends BaseClass
 	
 	/**
 	 * Déconnexion du user actif
+	 *
 	 * @return void
 	 */
 	public static function logOut()
@@ -347,6 +364,7 @@ class User extends BaseClass
 	
 	/**
 	 * Vérifie si un login existe déjà
+	 *
 	 * @param string $login le login à tester
 	 * @param boolean une confirmation
 	 */

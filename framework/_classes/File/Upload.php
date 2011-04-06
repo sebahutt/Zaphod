@@ -16,6 +16,7 @@ class Upload {
 	
 	/**
 	 * Constructor
+	 * 
 	 * @param string $name the name of the file input
 	 */
 	public function __construct($name)
@@ -25,6 +26,7 @@ class Upload {
 	
 	/**
 	 * Test if the file has been uploaded
+	 * 
 	 * @return boolean true if something has been uploaded (may not be valid), else false
 	 */
 	public function isUploaded()
@@ -34,6 +36,7 @@ class Upload {
 	
 	/**
 	 * Test if the file has been successfully uploaded
+	 * 
 	 * @return boolean true if the file has successfully been uploaded, else false
 	 */
 	public function isSuccessfullyUploaded()
@@ -43,6 +46,7 @@ class Upload {
 	
 	/**
 	 * Return the File object of the uploaded file (if successfull)
+	 * 
 	 * @return File|boolean the File object, or false if error
 	 */
 	public function getFile()
@@ -66,6 +70,7 @@ class Upload {
 	
 	/**
 	 * Get the error relative to the uploaded file
+	 * 
 	 * @return string the error messsage
 	 */
 	public function getUploadedError()

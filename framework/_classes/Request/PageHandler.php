@@ -4,27 +4,43 @@
  */
 abstract class PageHandler {
 	/**
-	 * Indique si le handler gère le type de route en cours
-	 * @param iRoute la route en cours de traitement
-	 * @return boolean une confirmation
+	 * Objet de route de la requête
+	 * @var iRequestRoute
 	 */
-	public function handles($route)
+	protected $_route;
+	
+	/**
+	 * Constructeur
+	 * @param iRequestRoute $route l'objet route de la requête
+	 */
+	public function __construct($route)
 	{
-		return ($route instanceof HttpPageRoute);
+		// Mémorisation
+		$this->_route = $route;
+	}
+	
+	/**
+	 * Renvoie l'objet route de rattachement
+	 * 
+	 * @return iRequestRoute l'objet route
+	 */
+	public function getRoute()
+	{
+		return $this->_route;
 	}
 	
 	/**
 	 * Démarre la requête : effectue toutes les actions avant la génération du contenu
-	 * @param iRoute $route l'objet route en cours
+	 * 
 	 * @return void
 	 */
-	public function begin($route)
+	public function begin()
 	{
 		// Traitement des actions
-		$actions = $route->getActionRequest();
+		$actions = $this->_route->getActionRequest();
 		if ($actions)
 		{
-			$controler = $route->getControler();
+			$controler = $this->_route->getControler();
 			foreach ($actions as $action)
 			{
 				if (method_exists($controler, $action))
@@ -37,10 +53,10 @@ abstract class PageHandler {
 	
 	/**
 	 * Termine la requête : effectue toutes les actions après la génération du contenu
-	 * @param iRoute $route l'objet route en cours
+	 * 
 	 * @return void
 	 */
-	public function end($route)
+	public function end()
 	{
 		
 	}

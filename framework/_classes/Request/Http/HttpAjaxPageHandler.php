@@ -2,7 +2,7 @@
 /**
  * Gestionnaire de requête HTTP en Ajax pour une page
  */
-class HttpAjaxPageHandler extends PageHandler implements iHandler {
+class HttpAjaxPageHandler extends PageHandler implements iRequestHandler {
 	/**
 	 * Données de la requête AJAX
 	 * @var array
@@ -10,42 +10,55 @@ class HttpAjaxPageHandler extends PageHandler implements iHandler {
 	protected $_ajax = false;
 	
 	/**
-	 * Indique si le handler gère le type de route en cours
-	 * @param iRoute la route en cours de traitement
-	 * @return boolean une confirmation
+	 * Constructeur
+	 * @param iRequestRoute $route l'objet route de la requête
+	 * @param array $ajax les actions de la requête ajax
 	 */
-	public function handles($route)
+	public function __construct($route, $ajax)
 	{
-		if (parent::handles($route))
+		// Mémorisation
+		parent::__construct($route);
+		$this->_ajax = $ajax;
+	}
+	
+	/**
+	 * Teste si le handler gère le type de route en cours
+	 * 
+	 * @param iRequestRoute la route en cours de traitement
+	 * @return iRequestHandler|boolean une instance de la classe si elle peut gérer le route, false sinon
+	 */
+	public static function handles($route)
+	{
+		if ($route instanceof HttpPageRoute)
 		{
 			// Récupération
-			$this->_ajax = Request::getParam('__ajax', '');
+			$ajax = Request::getParam('__ajax', '');
 			
 			// Formattage et sécurisation
-			if (!is_array($this->_ajax))
+			if (!is_array($ajax))
 			{
 				// Si valide
-				if (strlen(trim($this->_ajax)) > 0)
+				if (strlen(trim($ajax)) > 0)
 				{
-					$this->_ajax = array($this->_ajax);
+					$ajax = array($ajax);
 				}
 				else
 				{
-					$this->_ajax = false;
+					$ajax = false;
 				}
 			}
-			elseif (count($this->_ajax) == 0 or strlen(trim($this->_ajax[0])) == 0)
+			elseif (count($ajax) == 0 or strlen(trim($ajax[0])) == 0)
 			{
-				$this->_ajax = false;
+				$ajax = false;
 			}
 			
 			// Nettoyage
 			Request::clearGet('__ajax');
 			
 			// Si requête Ajax
-			if ($this->_ajax)
+			if ($ajax)
 			{
-				return true;
+				return new HttpAjaxPageHandler($route, $ajax);
 			}
 		}
 		
@@ -54,6 +67,7 @@ class HttpAjaxPageHandler extends PageHandler implements iHandler {
 	
 	/**
 	 * Obtient les appels de la requête AJAX
+	 * 
 	 * @return boolean|array la liste des requêtes AJAX, ou false si aucune
 	 */
 	public function getAjaxRequest()
@@ -63,15 +77,15 @@ class HttpAjaxPageHandler extends PageHandler implements iHandler {
 	
 	/**
 	 * Execute la requête
-	 * @param iRoute $route l'objet route en cours
+	 * 
 	 * @return string le contenu à afficher
 	 */
-	public function exec($route)
+	public function exec()
 	{
 		// Construction de la page
-		return $route->getControler()->build();
+		return $this->_route->getControler()->build();
 		
-		$controler = $route->getControler();
+		$controler = $this->_route->getControler();
 		$ajax = $this->getAjaxRequest();
 		
 		$content = array();
@@ -96,17 +110,18 @@ class HttpAjaxPageHandler extends PageHandler implements iHandler {
 	
 	/**
 	 * Termine la requête : effectue toutes les actions après la génération du contenu
-	 * @param iRoute $route l'objet route en cours
+	 * 
 	 * @return void
 	 */
-	public function end($route)
+	public function end()
 	{
 		parent::end();
 		
 		// Ajout à l'historique
-		if ($this->_page->addToHistory == 1 and $this->_page->saveParams == 1)
+		$page = $this->_route->getPage();
+		if ($page->addToHistory == 1 and $page->saveParams == 1)
 		{
-			History::updateParams(Request::getParser()->getBaseQuery(), Request::getParams());
+			History::updateParams($this->_route->getParser()->getBaseQuery(), Request::getParams());
 		}
 	}
 }

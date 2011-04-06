@@ -6,6 +6,7 @@ class DataHolderWatcherHolder extends DataHolderHolder
 {
 	/**
 	 * Constructeur de la classe
+	 * 
 	 * @param DataHolderWatcher $data l'objet à stocker
 	 */
 	public function __construct($data)
@@ -13,7 +14,7 @@ class DataHolderWatcherHolder extends DataHolderHolder
 		// Vérification
 		if (!($data instanceof DataHolderWatcher))
 		{
-			throw new SCException('Données non valides', 2, 'Le paramètre fourni doit être de type DataHolderWatcher', $data);
+			throw new SCException('Données non valides, le paramètre fourni doit être de type DataHolderWatcher');
 		}
 		
 		parent::__construct($data);
@@ -21,6 +22,7 @@ class DataHolderWatcherHolder extends DataHolderHolder
 	
 	/**
 	 * Indique si l'objet a été modifié
+	 * 
 	 * @return boolean une confirmation
 	 */
 	public function isModified()
@@ -30,6 +32,7 @@ class DataHolderWatcherHolder extends DataHolderHolder
 	
 	/**
 	 * Renvoie la liste des index modifiés
+	 * 
 	 * @return array la liste
 	 */
 	public function getModifiedList()
@@ -39,6 +42,7 @@ class DataHolderWatcherHolder extends DataHolderHolder
 	
 	/**
 	 * Efface la liste des champs modifiés
+	 * 
 	 * @return void
 	 */
 	public function resetModifiedList()
@@ -48,6 +52,7 @@ class DataHolderWatcherHolder extends DataHolderHolder
 	
 	/**
 	 * Définit la liste des champs modifiés
+	 * 
 	 * @param array $indexes la liste des champs
 	 * @return void
 	 */

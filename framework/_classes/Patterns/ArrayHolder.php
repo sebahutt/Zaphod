@@ -16,6 +16,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Constructeur de la classe de stockage
+	 * 
 	 * @param array $array le tableau à stocker
 	 */
 	public function __construct($array)
@@ -26,6 +27,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Renvoie le tableau stocké en interne
+	 * 
 	 * @return array le tableau
 	 */
 	public function getArray()
@@ -35,6 +37,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Obtention du nombre de lignes stockées
+	 * 
 	 * @return int le nombre de lignes
 	 */
 	public function count()
@@ -44,6 +47,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Obtention d'une ligne
+	 * 
 	 * @param string $index la ligne à renvoyer
 	 * @return mixed Retourne la ligne, ou la NULL si inexistante
 	 */
@@ -60,6 +64,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Définition d'une ligne
+	 * 
 	 * @param string $index la ligne à modifier
 	 * @param mixed $value la valeur à affecter
 	 * @return void
@@ -71,6 +76,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Ajoute une ligne au début
+	 * 
 	 * @param mixed $line les données de la ligne
 	 * @return int le nouveau nombre d'éléments
 	 */
@@ -81,6 +87,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Ajoute une ligne à la fin
+	 * 
 	 * @param mixed $line les données de la ligne
 	 * @return int le nouveau nombre d'éléments
 	 */
@@ -92,6 +99,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Supprime et renvoie la première ligne
+	 * 
 	 * @return mixed les données de la première ligne
 	 */
 	public function shift()
@@ -101,6 +109,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Supprime et renvoie la dernière ligne
+	 * 
 	 * @return mixed les données de la dernière ligne
 	 */
 	public function pop()
@@ -110,6 +119,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Ajoute les entrées du tableau fourni au début de la liste existante
+	 * 
 	 * @param array $array le tableau à ajouter
 	 * @return int le nouveau nombre de lignes
 	 */
@@ -121,6 +131,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Ajoute les entrées du tableau fourni à la fin de la liste existante
+	 * 
 	 * @param array $array le tableau à ajouter
 	 * @return int le nouveau nombre de lignes
 	 */
@@ -132,6 +143,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 
 	/**
 	 * Implémentation Iterator - Reset de la position
+	 * 
 	 * @return void
 	 */
 	public function rewind()
@@ -141,6 +153,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 
 	/**
 	 * Implémentation Iterator - Valeur de l'index courant
+	 * 
 	 * @return mixed la valeur de l'index
 	 */
 	public function current()
@@ -150,6 +163,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 
 	/**
 	 * Implémentation Iterator - Obtention de l'index courant
+	 * 
 	 * @return int|string la clé courante
 	 */
 	public function key()
@@ -159,6 +173,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 
 	/**
 	 * Implémentation Iterator - Index suivant
+	 * 
 	 * @return void
 	 */
 	public function next()
@@ -168,6 +183,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 
 	/**
 	 * Implémentation Iterator - Test de la validité de l'index courant
+	 * 
 	 * @return void
 	 */
 	public function valid()
@@ -177,6 +193,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Implémentation ArrayAccess - Affectation d'une valeur
+	 * 
 	 * @param string $index La ligne à affecter
 	 * @param mixed $valeur La valeur à affecter
 	 * @return void
@@ -189,6 +206,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Implémentation ArrayAccess - Teste un index
+	 * 
 	 * @param string $index La ligne à tester
 	 * @return boolean la confirmation si l'index existe
 	 */
@@ -200,6 +218,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Implémentation ArrayAccess - Efface un index
+	 * 
 	 * @param string $index La ligne à effacer
 	 * @return void
 	 */
@@ -211,6 +230,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Implémentation ArrayAccess - Renvoie un index
+	 * 
 	 * @param string $index La ligne à récupérer
 	 * @return mixed la valeur de l'index demandé, ou null s'il n'existe pas
 	 */
@@ -222,6 +242,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Méthode magique - lecture d'une valeur
+	 * 
 	 * @param string $index la clé de la valeur
 	 * @return mixed the value if defined, else NULL
 	 */
@@ -232,6 +253,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Méthode magique - teste si une clé est définie
+	 * 
 	 * @param string $index la clé à tester
 	 * @return boolean true if value is defined, else false
 	 */
@@ -242,6 +264,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Méthode magique - écriture d'une valeur
+	 * 
 	 * @param string $index la clé à modifier
 	 * @param mixed $value la nouvelle valeur
 	 * @return void
@@ -253,6 +276,7 @@ class ArrayHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Méthode magique - suppression d'une clé
+	 * 
 	 * @param string $index la clé à supprimer
 	 * @return void
 	 */

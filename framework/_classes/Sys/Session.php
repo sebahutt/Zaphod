@@ -48,11 +48,12 @@ class Session extends StaticClass {
 		self::$data = &self::$_root['data'];
 		
 		// Log
-		Logger::globalLog('Classe Session initialisée');
+		Log::info('Classe Session initialisée');
 	}
 	
 	/**
 	 * Vérifie si des données existent en cache
+	 * 
 	 * @param string $name le nom du cache
 	 * @param string $index l'index des données
 	 * @return boolean renvoie une confirmation
@@ -65,6 +66,7 @@ class Session extends StaticClass {
 	
 	/**
 	 * Récupération des données en cache
+	 * 
 	 * @param string $name le nom du cache
 	 * @param string $index l'index des données
 	 * @param mixed $default la valeur par défaut si l'index n'existe pas (facultatif, défaut : NULL)
@@ -77,6 +79,7 @@ class Session extends StaticClass {
 	
 	/**
 	 * Stockage de données en cache
+	 * 
 	 * @param string $name le nom du cache
 	 * @param string $index l'index des données
 	 * @param mixed $data les données à stocker
@@ -100,6 +103,7 @@ class Session extends StaticClass {
 	
 	/**
 	 * Nettoyage des données en cache
+	 * 
 	 * @param string $name le nom du cache
 	 * @param string $index l'index des données
 	 * @return void
@@ -112,6 +116,7 @@ class Session extends StaticClass {
 	
 	/**
 	 * Définit une variable par défaut pour la session
+	 * 
 	 * @param string $var Le nom de la variable à définir
 	 * @param mixed $value La valeur à affecter si la variable n'existe pas
 	 */
@@ -139,6 +144,7 @@ class Session extends StaticClass {
 	
 	/**
 	 * Ajoute une erreur
+	 * 
 	 * @param string $message le message d'erreur
 	 * @param string $domain le domaine de l'erreur (facultatif)
 	 */
@@ -150,12 +156,12 @@ class Session extends StaticClass {
 	
 	/**
 	 * Recherche si une erreur du niveau demandé est en attente
+	 * 
 	 * @param string|boolean $domain Le code de domaine souhaité, ou false pour tous (facultatif, défaut : 'info')
 	 * @return boolean confirmation ou non de la présence d'au moins une erreur
 	 */
 	public static function hasErrors($domain = 'global')
 	{
-		// Renvoi
 		if ($domain)
 		{
 			return isset(self::$_root['errors'][$domain]);
@@ -171,6 +177,7 @@ class Session extends StaticClass {
 	 * 
 	 * Recherche dans la liste des messages en attente ceux qui correspondent au niveau passé en option, et renvoie la
 	 * liste. Les messages renvoyés sont effacés de la liste.
+	 * 
 	 * @param string $domain Le code de domaine souhaité (facultatif, défaut : 'info')
 	 * @return array la liste des messages correspondants
 	 */
@@ -195,8 +202,10 @@ class Session extends StaticClass {
 	
 	/**
 	 * Ajoute un message en session
+	 * 
 	 * @param mixed $message message l'attention de l'utilisateur. Peut prendre toute forme, à traiter 
 	 * 	 par le script final d'affichage
+	 * 
 	 * @param string $domain Un code arbitraire de domaine, qui permet de récupérer les messages par
 	 * 	 usage : 'info', 'form', 'validation'... (facultatif, défaut : 'info')
 	 */
@@ -208,12 +217,12 @@ class Session extends StaticClass {
 	
 	/**
 	 * Recherche si un message du niveau demandé est en attente
+	 * 
 	 * @param string|boolean $domain Le code de domaine souhaité, ou false pour tous (facultatif, défaut : 'info')
 	 * @return boolean confirmation ou non de la présence d'au moins un message
 	 */
 	public static function hasMessages($domain = 'info')
 	{
-		// Renvoi
 		if ($domain)
 		{
 			return isset(self::$_root['messages'][$domain]);
@@ -229,6 +238,7 @@ class Session extends StaticClass {
 	 * 
 	 * Recherche dans la liste des messages en attente ceux qui correspondent au niveau passé en option, et renvoie la
 	 * liste. Les messages renvoyés sont effacés de la liste.
+	 * 
 	 * @param string $domain Le code de domaine souhaité (facultatif, défaut : 'info')
 	 * @return array la liste des messages correspondants
 	 */

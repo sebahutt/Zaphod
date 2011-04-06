@@ -37,6 +37,7 @@ class Page extends BaseClass
 	
 	/**
 	 * Obtention de l'élément parent
+	 * 
 	 * @return boolean|Page l'élément parent, ou false si non existant (racine)
 	 * @throws SCException
 	 */
@@ -63,17 +64,17 @@ class Page extends BaseClass
 				else
 				{
 					// Erreur
-					throw new SCException('Impossible de charge l\'élément parent de '.$this->id_page);
+					throw new SCException('Impossible de charger l\'élément parent de '.$this->id_page);
 				}
 			}
 		}
 		
-		// Renvoi
 		return $this->_parent;
 	}
 	
 	/**
 	 * Obtention de l'élément racine
+	 * 
 	 * @return Page l'élément parent (qui peut être l'élément courant)
 	 */
 	public function getRoot()
@@ -84,6 +85,7 @@ class Page extends BaseClass
 	
 	/**
 	 * URL de la page
+	 * 
 	 * @return string l'url de la page
 	 */
 	public function getUrl()
@@ -93,6 +95,7 @@ class Page extends BaseClass
 	
 	/**
 	 * Contruit le lien de la page
+	 * 
 	 * @param string|boolean $title le titre (alt) à utiliser, ou false pour utiliser celui de la page
 	 * @return string le lien de la page
 	 */
@@ -109,8 +112,10 @@ class Page extends BaseClass
 	
 	/**
 	 * Obtention des sous-éléments
+	 * 
 	 * @param boolean $strict indique si on doit se limiter aux pages accessibles ou toutes les charger
 	 * 												(facultatif, défaut : true)
+	 * 
 	 * @return array la liste des sous-éléments
 	 */
 	public function getChildren($strict = true)
@@ -122,12 +127,12 @@ class Page extends BaseClass
 			$this->_children = self::getIdChildren($this->id_page, $strict);
 		}
 		
-		// Renvoi
 		return $this->_children;
 	}
 	
 	/**
 	 * Teste si l'élément est accessible
+	 * 
 	 * @return boolean la confirmation que l'élément est accessible ou non
 	 */
 	public function isAccessible()
@@ -137,6 +142,7 @@ class Page extends BaseClass
 	
 	/**
 	 * Renvoie le chemin du contrôleur
+	 * 
 	 * @return string le chemin du contrôleur
 	 */
 	public function getControlerPath()
@@ -162,6 +168,7 @@ class Page extends BaseClass
 	
 	/**
 	 * Indique si la page a un contrôleur
+	 * 
 	 * @return boolean une confirmation
 	 */
 	public function hasControler()
@@ -176,6 +183,7 @@ class Page extends BaseClass
 	
 	/**
 	 * Obtention d'une page par son url
+	 * 
 	 * @param string $url le nom du fichier
 	 * @return Page|boolean l'objet page, ou false si inexistant
 	 * @static
@@ -261,6 +269,7 @@ class Page extends BaseClass
 	
 	/**
 	 * Obtention des sous-éléments d'un id
+	 * 
 	 * @param int $id_parent l'id du parent
 	 * @param boolean $strict indique si on doit se limiter aux pages accessibles ou toutes les charger (facultatif, défaut : true)
 	 * @return array la liste des sous-éléments trouvés
@@ -305,6 +314,7 @@ class Page extends BaseClass
 	
 	/**
 	 * Renvoie la navigation principale
+	 * 
 	 * @param boolean $strict indique si on doit se limiter aux pages accessibles ou toutes les charger (facultatif, défaut : true)
 	 * @return array la liste des rubriques principales
 	 * @static

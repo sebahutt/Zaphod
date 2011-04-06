@@ -1,12 +1,5 @@
 <?php
 /**
- * Fichier de définition de la classe de manipulation de dates
- * 
- * Ce fichier contient la déclaration de la classe Date, qui permet de manipuler les dates et les périodes
- * @author Sébastien Hutter
- */
-
-/**
  * Classe de manipulation de dates
  * 
  * La classe Date permet de manipuler les dates et les périodes
@@ -35,6 +28,11 @@ class Date {
 		array('%d seconde', '%d secondes', 1)
 	);
 	/**
+	 * Date par défaut (début de la requête en cours)
+	 * @var Date
+	 */
+	protected static $_default;
+	/**
 	 * Format de champ SQL datetime
 	 * @var string
 	 */
@@ -52,8 +50,8 @@ class Date {
 	
 	/**
 	 * Constructeur de la classe
-	 * @param mixed $date la date à utiliser : timestamp ou chaîne à parser, ou true pour
-	 * 	 utiliser la date courante (facultatif, défaut : true)
+	 * 
+	 * @param mixed $date la date à utiliser : timestamp ou chaîne à parser, ou true pour utiliser la date courante (facultatif, défaut : true)
 	 * @throws SCException
 	 */
 	public function __construct($date = true)
@@ -83,7 +81,7 @@ class Date {
 			// Si non valide
 			if ($date === false)
 			{
-				throw new SCException('Paramètre de date non valide', 1, 'Chaîne de date non valide', $date);
+				throw new SCException('Paramètre de date non valide ('.$date.')');
 			}
 			
 			// Mémorisation
@@ -92,12 +90,13 @@ class Date {
 		else
 		{
 			// Echec
-			throw new SCException('Paramètre de date non valide', 1, 'Aucun format reconnu', $date);
+			throw new SCException('Paramètre de date non valide ('.var_export($date, true).')');
 		}
 	}
 	
 	/**
 	 * Indique si la date est vide (données non valides)
+	 * 
 	 * @return boolean une confirmation
 	 */
 	public function isEmpty()
@@ -107,6 +106,7 @@ class Date {
 	
 	/**
 	 * Renvoie une copie de la date
+	 * 
 	 * @return Date l'objet copié
 	 */
 	public function duplicate()
@@ -116,6 +116,7 @@ class Date {
 	
 	/**
 	 * Décale la date du nombre de secondes fournies
+	 * 
 	 * @param int $offset le décalage à appliquer
 	 * @return Date l'objet en cours pour chaînage
 	 */
@@ -126,12 +127,12 @@ class Date {
 			$this->_date += intval($offset);
 		}
 		
-		// Renvoi
 		return $this;
 	}
 	
 	/**
 	 * Décale la date au jour précédent
+	 * 
 	 * @param array $days la liste des jours de la semaine à utiliser (de 1 (lundi) à 7 (dimanche)) ou NULL pour tous
 	 * @return Date l'objet en cours pour chaînage
 	 */
@@ -141,7 +142,8 @@ class Date {
 		if (!$this->_empty)
 		{
 			// Décalage d'une journée
-			$this->_date -= 86400;
+			$day = intval($this->toString('N'));
+			$day = ($day == 1) ? 7 : $day-1;
 			
 			// Si jour
 			if (is_array($days) and count($days) > 0)
@@ -150,20 +152,23 @@ class Date {
 				$counter = 0;
 				
 				// On boucle pour trouver un jour valide
-				while ($counter < 7 and !in_array($this->toFormat('N'), $days))
+				while ($counter < 7 and !in_array($day, $days))
 				{
-					$this->_date -= 86400;
+					$day = ($day == 1) ? 7 : $day-1;
 					++$counter;
 				}
 			}
+			
+			// Application
+			$this->setDay($day);
 		}
 		
-		// Renvoi
 		return $this;
 	}
 	
 	/**
 	 * Décale la date au jour suivant
+	 * 
 	 * @param array $days la liste des jours de la semaine à utiliser (de 1 (lundi) à 7 (dimanche)) ou NULL pour tous
 	 * @return Date l'objet en cours pour chaînage
 	 */
@@ -173,7 +178,8 @@ class Date {
 		if (!$this->_empty)
 		{
 			// Décalage d'une journée
-			$this->_date += 86400;
+			$day = intval($this->toString('N'));
+			$day = $day == 7 ? 1 : $day+1;
 			
 			// Si jour
 			if (is_array($days) and count($days) > 0)
@@ -182,20 +188,23 @@ class Date {
 				$counter = 0;
 				
 				// On boucle pour trouver un jour valide
-				while ($counter < 7 and !in_array($this->toFormat('N'), $days))
+				while ($counter < 7 and !in_array($day, $days))
 				{
-					$this->_date += 86400;
+					$day = $day == 7 ? 1 : $day+1;
 					++$counter;
 				}
 			}
+			
+			// Application
+			$this->setDay($day);
 		}
 		
-		// Renvoi
 		return $this;
 	}
 
 	/**
 	 * Définit les secondes de la date
+	 * 
 	 * @param int $second la valeur pour les secondes
 	 * @return Date l'objet Date en cours
 	 */
@@ -204,7 +213,7 @@ class Date {
 		// Si valide
 		if (!$this->_empty)
 		{
-			$this->_date = mktime($this->toFormat('G'), intval($this->toFormat('i')), $second, $this->toFormat('n'), $this->toFormat('j'), $this->toFormat('Y'));
+			$this->_date = mktime($this->toString('G'), intval($this->toString('i')), $second, $this->toString('n'), $this->toString('j'), $this->toString('Y'));
 		}
 
 		return $this;
@@ -212,6 +221,7 @@ class Date {
 
 	/**
 	 * Définit les minutes de la date
+	 * 
 	 * @param int $minute la valeur pour les minutes
 	 * @return Date l'objet Date en cours
 	 */
@@ -220,7 +230,7 @@ class Date {
 		// Si valide
 		if (!$this->_empty)
 		{
-			$this->_date = mktime($this->toFormat('G'), $minute, intval($this->toFormat('s')), $this->toFormat('n'), $this->toFormat('j'), $this->toFormat('Y'));
+			$this->_date = mktime($this->toString('G'), $minute, intval($this->toString('s')), $this->toString('n'), $this->toString('j'), $this->toString('Y'));
 		}
 
 		return $this;
@@ -228,6 +238,7 @@ class Date {
 
 	/**
 	 * Définit l'heure de la date, sans changer le jour.
+	 * 
 	 * @param int $hour la valeur pour les heures
 	 * @param int $minute la valeur pour les minutes (facultatif, défaut : NULL)
 	 * @param int $second la valeur pour les secondes (facultatif, défaut : NULL)
@@ -238,7 +249,7 @@ class Date {
 		// Si valide
 		if (!$this->_empty)
 		{
-			$this->_date = mktime($hour, is_null($minute) ? intval($this->toFormat('i')) : $minute, is_null($second) ? intval($this->toFormat('s')) : $second, $this->toFormat('n'), $this->toFormat('j'), $this->toFormat('Y'));
+			$this->_date = mktime($hour, is_null($minute) ? intval($this->toString('i')) : $minute, is_null($second) ? intval($this->toString('s')) : $second, $this->toString('n'), $this->toString('j'), $this->toString('Y'));
 		}
 
 		return $this;
@@ -246,6 +257,7 @@ class Date {
 
 	/**
 	 * Définit le jour du mois de la date
+	 * 
 	 * @param int $day le jour du mois
 	 * @return Date l'objet Date en cours
 	 */
@@ -254,7 +266,7 @@ class Date {
 		// Si valide
 		if (!$this->_empty)
 		{
-			$this->_date = mktime($this->toFormat('G'), intval($this->toFormat('i')), intval($this->toFormat('s')), $this->toFormat('n'), $day, $this->toFormat('Y'));
+			$this->_date = mktime($this->toString('G'), intval($this->toString('i')), intval($this->toString('s')), $this->toString('n'), $day, $this->toString('Y'));
 		}
 
 		return $this;
@@ -262,6 +274,7 @@ class Date {
 
 	/**
 	 * Définit le mois de la date
+	 * 
 	 * @param int $month le mois
 	 * @return Date l'objet Date en cours
 	 */
@@ -270,7 +283,7 @@ class Date {
 		// Si valide
 		if (!$this->_empty)
 		{
-			$this->_date = mktime($this->toFormat('G'), intval($this->toFormat('i')), intval($this->toFormat('s')), $month, $this->toFormat('j'), $this->toFormat('Y'));
+			$this->_date = mktime($this->toString('G'), intval($this->toString('i')), intval($this->toString('s')), $month, $this->toString('j'), $this->toString('Y'));
 		}
 
 		return $this;
@@ -278,6 +291,7 @@ class Date {
 
 	/**
 	 * Définit l'année de la date
+	 * 
 	 * @param int $year l'année
 	 * @return Date l'objet Date en cours
 	 */
@@ -286,7 +300,7 @@ class Date {
 		// Si valide
 		if (!$this->_empty)
 		{
-			$this->_date = mktime($this->toFormat('G'), intval($this->toFormat('i')), intval($this->toFormat('s')), $this->toFormat('n'), $month, $this->toFormat('j'), $year);
+			$this->_date = mktime($this->toString('G'), intval($this->toString('i')), intval($this->toString('s')), $this->toString('n'), $month, $this->toString('j'), $year);
 		}
 
 		return $this;
@@ -294,6 +308,7 @@ class Date {
 	
 	/**
 	 * Renvoie le timestamp actuel de la date
+	 * 
 	 * @return int le timestamp, ou NULL si vide
 	 */
 	public function getTime()
@@ -302,102 +317,93 @@ class Date {
 	}
 	
 	/**
-	 * Renvoie la date au format compact YYYYMMJJ, par exemple pour comparer des dates
-	 * @return int la valeur de la date au format YYYYMMJJ, ou NULL si vide
-	 */
-	public function getDateInt()
-	{
-		return $this->_empty ? NULL : intval($this->toFormat('Ymd'));
-	}
-
-	/**
-	 * Renvoie la date au format compact YYYYMMJJHHMMSS, par exemple pour comparer des dates
-	 * @return int la valeur de la date au format YYYYMMJJHHMMSS, ou NULL si vide
-	 */
-	public function getDateTimeInt()
-	{
-		return $this->_empty ? NULL : $this->toFormat('YmdHis');
-	}
-	
-	/**
 	 * Le nom complet du jour formatté selon la locale
+	 * 
 	 * @return string le jour de la semaine complet
 	 */
 	public function getDay()
 	{
-		return self::getDayName(intval($this->toFormat('w')), $this->getLocale());
+		return self::getDayName(intval($this->toString('w')));
 	}
 	
 	/**
 	 * Le nom court du jour formatté selon la locale
+	 * 
 	 * @return string le jour de la semaine complet
 	 */
 	public function getShortDay()
 	{
-		return self::getShortDayName(intval($this->toFormat('w')), $this->getLocale());
+		return self::getShortDayName(intval($this->toString('w')));
 	}
 	
 	/**
 	 * Le nom complet du mois formatté selon la locale
+	 * 
 	 * @return string le nom du mois complet
 	 */
 	public function getMonth()
 	{
-		return self::getMonthName(intval($this->toFormat('n')), $this->getLocale());
+		return self::getMonthName(intval($this->toString('n')));
 	}
 	
 	/**
 	 * Le nom court du mois formatté selon la locale
+	 * 
 	 * @return string le nom du mois complet
 	 */
 	public function getShortMonth()
 	{
-		return self::getShortMonthName(intval($this->toFormat('n')), $this->getLocale());
+		return self::getShortMonthName(intval($this->toString('n')));
 	}
 	
 	/**
 	 * Renvoie la date en utilisant une chaîne de format
+	 * 
 	 * @param string $format un format identique à ceux de la fonction date(), ou une des constantes
 	 * 	 FORMAT_* de la classe
+	 * 
 	 * @return string la date formattée, ou NULL si vide
 	 */
-	public function toFormat($format)
+	public function toString($format)
 	{
 		return $this->_empty ? NULL : date($format, $this->_date);
 	}
 	
 	/**
 	 * Renvoie la date au format DATETIME SQL
+	 * 
 	 * @return string la date formattée, ou NULL si vide
 	 */
-	public function getSQLDatetime()
+	public function getSqlDatetime()
 	{
-		return $this->_empty ? NULL : $this->toFormat(self::FORMAT_SQL_DATETIME);
+		return $this->_empty ? NULL : $this->toString(self::FORMAT_SQL_DATETIME);
 	}
 	
 	/**
 	 * Renvoie la date au format DATE SQL
+	 * 
 	 * @return string la date formattée, ou NULL si vide
 	 */
-	public function getSQLDate()
+	public function getSqlDate()
 	{
-		return $this->_empty ? NULL : $this->toFormat(self::FORMAT_SQL_DATE);
+		return $this->_empty ? NULL : $this->toString(self::FORMAT_SQL_DATE);
 	}
 	
 	/**
 	 * Renvoie la date au format TIME SQL
+	 * 
 	 * @return string la date formattée, ou NULL si vide
 	 */
-	public function getSQLTime()
+	public function getSqlTime()
 	{
-		return $this->_empty ? NULL : $this->toFormat(self::FORMAT_SQL_TIME);
+		return $this->_empty ? NULL : $this->toString(self::FORMAT_SQL_TIME);
 	}
 	
 	/**
 	 * Calcule la différence (nombre de secondes écoulées) entre la date de l'objet et la date fournie
 	 * Si la date courante est antérieure, la différence sera positive, sinon elle sera négative
-	 * @param mixed $date un objet date ou toute valeur valide pour une date (voir __construct()) 
-	 * 	 (optionnel, défaut : true)
+	 * 
+	 * @param mixed $date un objet date ou toute valeur valide pour une date (voir __construct()) (optionnel, défaut : true)
 	 * @return int la différence en secondes, ou NULL si vide
 	 */
 	public function getDiff($date = true)
@@ -420,10 +426,9 @@ class Date {
 
 	/**
 	 * Indique si la date courante se situe avant celle passée en paramètre.
-	 * @param mixed $date un objet date ou toute valeur valide pour une date (voir __construct())
-	 * 	 (optionnel, défaut : true)
-	 * @param boolean $confirmIfSame indique si la condition est vérifiée si les dates sont identiques
-	 * 	 (facultatif, défaut : true)
+	 * 
+	 * @param mixed $date un objet date ou toute valeur valide pour une date (voir __construct()) (optionnel, défaut : true)
+	 * @param boolean $confirmIfSame indique si la condition est vérifiée si les dates sont identiques (facultatif, défaut : true)
 	 * @return boolean la confirmation que la date est antérieure ou non
 	 */
 	public function isBefore($date, $confirmIfSame = true)
@@ -433,8 +438,8 @@ class Date {
 
 	/**
 	 * Indique si la date courante est la même que celle passée en paramètre
-	 * @param mixed $date un objet date ou toute valeur valide pour une date (voir __construct())
-	 * 	 (optionnel, défaut : true)
+	 * 
+	 * @param mixed $date un objet date ou toute valeur valide pour une date (voir __construct()) (optionnel, défaut : true)
 	 * @return boolean la confirmation que les dates sont équivalentes ou non
 	 */
 	public function isSameAs($date)
@@ -445,10 +450,9 @@ class Date {
 	/**
 	 * Indique si la date courante se situe après celle passée en paramètre. Renvoie
 	 * true si les dates sont équivalentes
-	 * @param mixed $date un objet date ou toute valeur valide pour une date (voir __construct())
-	 * 	 (optionnel, défaut : true)
-	 * @param boolean $confirmIfSame indique si la condition est vérifiée si les dates sont identiques
-	 * 	 (facultatif, défaut : true)
+	 * 
+	 * @param mixed $date un objet date ou toute valeur valide pour une date (voir __construct()) (optionnel, défaut : true)
+	 * @param boolean $confirmIfSame indique si la condition est vérifiée si les dates sont identiques (facultatif, défaut : true)
 	 * @return boolean la confirmation que la date est postérieure ou non
 	 */
 	public function isAfter($date, $confirmIfSame = true)
@@ -458,8 +462,9 @@ class Date {
 	
 	/**
 	 * Renvoie le texte d'affichage relatif (heure si aujourd'hui ou date si trop ancien) d'une date
+	 * 
 	 * @param boolean $addTime indique s'il faut ajouter l'heure (uniquement si affichage de date)
-	 * @param string $dateDefault le format de date à utiliser
+	 * @param string $dateDefault le format de date à utiliser (facultatif, défaut : 'd/m')
 	 * @return string la date formatée
 	 */
 	public function getRelativeDate($addTime = true, $dateDefault = 'd/m')
@@ -468,41 +473,35 @@ class Date {
 		$now = Date::now();
 		
 		// Si pas le même jour qu'aujourd'hui
-		if ($this->toFormat('N') != $now->toFormat('N'))
+		if ($this->toString('N') != $now->toString('N'))
 		{
 			// Nombre de jours écoulés
 			$nbJours = floor($now->getTime()/86400)-floor($this->getTime()/86400);
 			if ($nbJours == 1)
 			{
-				return $addTime ? sprintf(__('Hier à %s'), $this->toFormat('H:i')) : __('Hier');
+				return $addTime ? sprintf(__('Hier à %s'), $this->toString('H:i')) : __('Hier');
 			}
 			else
 			{
-				return $addTime ? $this->toFormat(__($dateDefault)).' - '.$this->toFormat('H:i') : $this->toFormat(__($dateDefault));
+				return $addTime ? $this->toString(__($dateDefault)).' - '.$this->toString('H:i') : $this->toString(__($dateDefault));
 			}
 		}
 		else
 		{
-			return $this->toFormat('H:i');
+			return $this->toString('H:i');
 		}
 	}
 	
 	/**
-	 * Vérifie si la date est dans l'intervale en deux autres.
-	 * 
 	 * Vérifie si la date appartient bien à l'intervale en deux autres. Il est possible de vérifier si une date est hors
-	 * de cet intervale en inversant $debut et $fin ($debut est alors postérieur à $fin).
-	 * @param mixed $debut la date de début d'intervale : un objet date ou toute valeur
-	 * 	 valide pour une date (voir __construct()), ou NULL pour ne pas 
-	 * 	 définir de début
-	 * @param mixed $fin la date de fin d'intervale : un objet date ou toute valeur
-	 * 	 valide pour une date (voir __construct()), ou NULL pour ne pas 
-	 * 	 définir de fin
-	 * @param boolean $defaut valeur à retourner en cas d'impossibilité de calcul (facultatif,
-	 * 	 défaut : true)
+	 * de cet intervale en inversant $start et $end ($start est alors postérieur à $end).
+	 * 
+	 * @param mixed $start la date de début d'intervale : un objet date ou toute valeur  valide pour une date (voir __construct()), ou NULL pour ne pas définir de début
+	 * @param mixed $end la date de fin d'intervale : un objet date ou toute valeur valide pour une date (voir __construct()), ou NULL pour ne pas définir de fin
+	 * @param boolean $defaut valeur à retourner en cas d'impossibilité de calcul (facultatif, défaut : true)
 	 * @return string une confirmation si la date est bien dans l'intervale ou non, ou $defaut si vide
 	 */
-	public function inInterval($debut, $fin, $defaut = false)
+	public function inInterval($start, $end, $defaut = false)
 	{
 		// Si non défini
 		if ($this->_empty)
@@ -511,43 +510,43 @@ class Date {
 		}
 		
 		// Dates
-		if (!is_null($debut) and !$debut instanceof Date)
+		if (!is_null($start) and !$start instanceof Date)
 		{
-			$debut = new Date($debut);
+			$start = new Date($start);
 		}
-		if (!is_null($fin) and !$fin instanceof Date)
+		if (!is_null($end) and !$end instanceof Date)
 		{
-			$fin = new Date($fin);
+			$end = new Date($end);
 		}
 		
 		// Si début
-		if (!is_null($debut))
+		if (!is_null($start))
 		{
 			// Si fin
-			if (!is_null($fin))
+			if (!is_null($end))
 			{
 				// Mode
-				if ($debut->getTime() < $fin->getTime())
+				if ($start->getTime() < $end->getTime())
 				{
 					// Si dans l'intervale
-					return ($this->getTime() >= $debut->getTime() and $this->getTime() < $fin->getTime());
+					return ($this->getTime() >= $start->getTime() and $this->getTime() < $end->getTime());
 				}
 				else
 				{
 					// Si à l'extérieur de l'intervale
-					return ($this->getTime() < $fin->getTime() or $this->getTime() >= $debut->getTime());
+					return ($this->getTime() < $end->getTime() or $this->getTime() >= $start->getTime());
 				}
 			}
 			else
 			{
 				// Si postérieure au début
-				return ($this->getTime() >= $debut->getTime());
+				return ($this->getTime() >= $start->getTime());
 			}
 		}
-		elseif (!is_null($fin))
+		elseif (!is_null($end))
 		{
 			// Si antérieur à la fin
-			return ($this->getTime() < $fin->getTime());
+			return ($this->getTime() < $end->getTime());
 		}
 		
 		// Par défaut
@@ -555,19 +554,16 @@ class Date {
 	}
 	
 	/**
-	 * Définit l'éventuel début de l'interval spécifié par rapport à la date.
+	 * Définit l'éventuel début de l'intervale spécifié par rapport à la date. Il est possible d'obtenir le délai d'ici à la fin
+	 * de cet intervale en inversant $start et $end ($start est alors postérieur à $end).
 	 * 
-	 * Définit l'éventuel début de l'interval spécifié par rapport à la date. Il est possible d'obtenir le délai d'ici à la fin
-	 * de cet intervale en inversant $debut et $fin ($debut est alors postérieur à $fin).
-	 * @param string|int $debut la date de début d'intervale
-	 * @param string|int $fin la date de fin d'intervale
-	 * @return boolean|int en mode normal : false si l'intervale est déjà dépassé, true s'il la date appartient 
-	 * 	 à l'intervale, ou le nombre de secondes de la date au début de l'intervale
-	 * 	 en mode inversé : true si on est hors de l'intervale, ou le nombre de secondes d'ici à la fin
-	 * 	 de l'intervale
-	 * 	 dans les deux cas : NULL si vide
+	 * @param string|int $start la date de début d'intervale
+	 * @param string|int $end la date de fin d'intervale
+	 * @return boolean|int 	- en mode normal : false si l'intervale est déjà dépassé, true s'il la date appartient  à l'intervale, ou le nombre de secondes de la date au début de l'intervale
+	 * 						- en mode inversé : true si on est hors de l'intervale, ou le nombre de secondes d'ici à la fin de l'intervale
+	 * 						- dans les deux cas : NULL si la date courante est vide
 	 */
-	public function nextIntervalStart($debut, $fin)
+	public function nextIntervalStart($start, $end)
 	{
 		// Si non défini
 		if ($this->_empty)
@@ -576,34 +572,34 @@ class Date {
 		}
 		
 		// Dates
-		if (!is_null($debut) and !$debut instanceof Date)
+		if (!is_null($start) and !$start instanceof Date)
 		{
-			$debut = new Date($debut);
+			$start = new Date($start);
 		}
-		if (!is_null($fin) and !$fin instanceof Date)
+		if (!is_null($end) and !$end instanceof Date)
 		{
-			$fin = new Date($fin);
+			$end = new Date($end);
 		}
 		
 		// Si début
-		if (!is_null($debut))
+		if (!is_null($start))
 		{
 			// Si fin
-			if (!is_null($fin))
+			if (!is_null($end))
 			{
 				// Mode
-				if ($debut->getTime() < $fin->getTime())
+				if ($start->isBefore($end))
 				{
 					// Si dans l'intervale
-					if ($this->getTime() >= $debut->getTime() and $this->getTime() < $fin->getTime())
+					if ($this->getTime() >= $start->getTime() and $this->getTime() < $end->getTime())
 					{
 						// Disponible
 						return true;
 					}
-					elseif ($this->getTime() < $debut->getTime())
+					elseif ($this->getTime() < $start->getTime())
 					{
 						// Disponible dans
-						return $debut->getTime()-$this->getTime();
+						return $start->getTime()-$this->getTime();
 					}
 					else
 					{
@@ -614,7 +610,7 @@ class Date {
 				else
 				{
 					// Si à l'extérieur de l'intervale
-					if ($this->getTime() < $fin->getTime() or $this->getTime() >= $debut->getTime())
+					if ($this->getTime() < $end->getTime() or $this->getTime() >= $start->getTime())
 					{
 						// Disponible
 						return true;
@@ -622,14 +618,14 @@ class Date {
 					else
 					{
 						// Disponible dans
-						return $debut->getTime()-$this->getTime();
+						return $start->getTime()-$this->getTime();
 					}
 				}
 			}
 			else
 			{
 				// Si après le début
-				if ($this->getTime() >= $debut->getTime())
+				if ($this->getTime() >= $start->getTime())
 				{
 					// Disponible
 					return true;
@@ -637,14 +633,14 @@ class Date {
 				else
 				{
 					// Disponible dans
-					return $debut->getTime()-$this->getTime();
+					return $start->getTime()-$this->getTime();
 				}
 			}
 		}
-		elseif (!is_null($fin))
+		elseif (!is_null($end))
 		{
 			// Si avant la fin
-			if ($this->getTime() < $fin->getTime())
+			if ($this->getTime() < $end->getTime())
 			{
 				// Disponible
 				return true;
@@ -664,8 +660,8 @@ class Date {
 	
 	/**
 	 * Renvoie un objet date
-	 * @param mixed $date la date à utiliser : timestamp ou chaîne à parser, ou true pour
-	 * 	 utiliser la date courante (facultatif, défaut : true)
+	 * 
+	 * @param mixed $date la date à utiliser : timestamp ou chaîne à parser, ou true pour utiliser la date courante (facultatif, défaut : true)
 	 * @return Date l'objet date créé
 	 */
 	public static function getDate($date = true)
@@ -675,6 +671,7 @@ class Date {
 	
 	/**
 	 * Renvoie l'objet de la date en cours (raccourci de Date::getDate(true))
+	 * 
 	 * @return Date l'objet date créé
 	 */
 	public static function now()
@@ -683,16 +680,103 @@ class Date {
 	}
 	
 	/**
+	 * Renvoie le timestamp actuel de la date
+	 * 
+	 * @return int le timestamp, ou NULL si vide
+	 */
+	public static function time()
+	{
+		return self::now()->getTime();
+	}
+	
+	/**
+	 * Le nom complet du jour formatté selon la locale
+	 * 
+	 * @return string le jour de la semaine complet
+	 */
+	public static function day()
+	{
+		return self::now()->getDay();
+	}
+	
+	/**
+	 * Le nom court du jour formatté selon la locale
+	 * 
+	 * @return string le jour de la semaine complet
+	 */
+	public static function shortDay()
+	{
+		return self::now()->getShortDay();
+	}
+	
+	/**
+	 * Le nom complet du mois formatté selon la locale
+	 * 
+	 * @return string le nom du mois complet
+	 */
+	public static function month()
+	{
+		return self::now()->getMonth();
+	}
+	
+	/**
+	 * Le nom court du mois formatté selon la locale
+	 * 
+	 * @return string le nom du mois complet
+	 */
+	public static function shortMonth()
+	{
+		return self::now()->getShortMonth();
+	}
+	
+	/**
+	 * Renvoie la date en utilisant une chaîne de format
+	 * 
+	 * @param string $format un format identique à ceux de la fonction date(), ou une des constantes FORMAT_* de la classe
+	 * @return string la date formattée, ou NULL si vide
+	 */
+	public static function string($format)
+	{
+		return self::now()->toString($format);
+	}
+	
+	/**
+	 * Renvoie la date au format DATETIME SQL
+	 * 
+	 * @return string la date formattée, ou NULL si vide
+	 */
+	public static function sqlDatetime()
+	{
+		return self::now()->getSqlDatetime();
+	}
+	
+	/**
+	 * Renvoie la date au format DATE SQL
+	 * 
+	 * @return string la date formattée, ou NULL si vide
+	 */
+	public static function sqlDate()
+	{
+		return self::now()->getSqlDate();
+	}
+	
+	/**
+	 * Renvoie la date au format TIME SQL
+	 * 
+	 * @return string la date formattée, ou NULL si vide
+	 */
+	public static function sqlTime()
+	{
+		return self::now()->getSqlTime();
+	}
+	
+	/**
 	 * Conversion d'une durée en périodes
 	 * 
-	 * Convertit une durée donnée en périodes de temps
 	 * @param int $duration la durée à convertir
 	 * @param int|boolean $detail le nombre de périodes de détail, ou false pour toutes
-	 * @param boolean $simplify indique s'il faut supprimer les unités trop petites par rapport
-	 * 	 à la précédente, pour éviter par exemple '3j et 5s' (facultatif,
-	 * 	 défaut : true)
+	 * @param boolean $simplify indique s'il faut supprimer les unités trop petites par rapport à la précédente, pour éviter par exemple '3j et 5s' (facultatif, défaut : true)
 	 * @return array un tableau avec toutes les périodes couvertes
-	 * @todo Rajouter le support des locales pour les intervales de temps
 	 */
 	public static function convertToPeriods($duration, $detail = 2, $simplify = true)
 	{
@@ -742,12 +826,12 @@ class Date {
 			$periods[] = _n($restant, self::$_durees[count(self::$_durees)-1][0], self::$_durees[count(self::$_durees)-1][1]);
 		}
 		
-		// Renvoi
 		return $periods;
 	}
 
 	/**
 	 * Renvoie le numéro de semaine maximal pour une année
+	 * 
 	 * @param int $year l'année à utiliser
 	 * @return int le nombre de semaines : 52 ou 53
 	 */
@@ -760,6 +844,7 @@ class Date {
 
 	/**
 	 * Calcule le mois correspondant au jour d'un numéro de semaine
+	 * 
 	 * @param int $year l'année à utiliser
 	 * @param int $week le numéro de semaine (de 1 à 53)
 	 * @param int $day le numéro de jour ISO (de 1 à 7) (facultatif, défaut : 1 - lundi)
@@ -788,6 +873,7 @@ class Date {
 
 	/**
 	 * Convertit une date utilisateur en date SQL, si nécessaire
+	 * 
 	 * @param string $value la date à traiter
 	 * @param boolean $date indique si la date comporte une date (défaut : true)
 	 * @param boolean $time indique si la date comporte une heure (défaut : false)
@@ -800,7 +886,7 @@ class Date {
 	 * 	 - useSecond
 	 * @return string la date traitée, ou NULL si non valide
 	 */
-	public static function convertUserDateToSQL($value, $date = true, $time = false, $options = array())
+	public static function convertUserDateToSql($value, $date = true, $time = false, $options = array())
 	{
 		// Init
 		$value = trim($value);

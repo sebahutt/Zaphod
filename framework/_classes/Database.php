@@ -18,7 +18,7 @@ class Database
 	 * Listing des objets tables
 	 * @var array
 	 */
-	protected $_fields;
+	protected $_tables;
 	/**
 	 * Listing des serveurs connectés
 	 * @var array
@@ -27,12 +27,13 @@ class Database
 	
 	/**
 	 * Constructeur de la classe
+	 *
 	 * @param Config $config les données de configuration
 	 */
 	public function __construct($config)
 	{
 		// Init
-		$this->_fields = array();
+		$this->_tables = array();
 		
 		// Mémorisation
 		$this->_config = $config;
@@ -43,6 +44,7 @@ class Database
 	
 	/**
 	 * Destructeur de la classe
+	 *
 	 * @return void
 	 */
 	public function __destruct()
@@ -53,6 +55,7 @@ class Database
 	
 	/**
 	 * Connexion à la base
+	 *
 	 * @return void
 	 * @throws SCException
 	 */
@@ -71,7 +74,7 @@ class Database
 			
 			// Configuration
 			$this->_link->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-			$this->_link->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true); 
+			$this->_link->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
 		}
 		catch (PDOException $ex)
 		{
@@ -85,6 +88,7 @@ class Database
 	
 	/**
 	 * Fermeture de la connexion
+	 *
 	 * @return void
 	 */
 	protected function _close()
@@ -96,6 +100,7 @@ class Database
 	/**
 	 * Exécution finale d'une requête. La requête est préparée, c'est-à-dire que les paramètres
 	 * doivent être remplacés par des ? et fournis dans un tableau (dans le même ordre que dans la requête).
+	 *
 	 * @param string $request la requête à exécuter
 	 * @param mixed $params les paramètres de la requête (facultatif, défaut : array())
 	 * @return PDOStatement l'objet résultat
@@ -125,12 +130,12 @@ class Database
 			throw new SCException('Requête non valide : '.$result->errorInfo());
 		}
 		
-		// Renvoi
 		return $result;
 	}
 	
 	/**
 	 * Exécution d'une requête de type SELECT. La requête est préparée, les paramètres sont à fournir séparément
+	 *
 	 * @param mixed $params les paramètres de la requête (facultatif, défaut : array())
 	 * @return DatabaseResult un objet de résultat contenant la liste des lignes renvoyées
 	 */
@@ -151,6 +156,7 @@ class Database
 	
 	/**
 	 * Renvoi une valeur unique (première valeur de la première ligne) d'une requête SELECT. La requête est préparée, les paramètres sont à fournir séparément
+	 *
 	 * @param string $request la requête à exécuter
 	 * @param mixed $params les paramètres de la requête (facultatif, défaut : array())
 	 * @return mixed la valeur unique
@@ -167,12 +173,12 @@ class Database
 		// Libération du pointeur
 		$result->closeCursor();
 		
-		// Renvoi
 		return $retour;
 	}
 	
 	/**
 	 * Renvoi une ligne unique (première ligne) d'une requête SELECT. La requête est préparée, les paramètres sont à fournir séparément
+	 *
 	 * @param string $request la requête à exécuter
 	 * @param mixed $params les paramètres de la requête (facultatif, défaut : array())
 	 * @return array|boolean la ligne unique, ou false en cas d'échec
@@ -189,12 +195,12 @@ class Database
 		// Libération du pointeur
 		$result->closeCursor();
 		
-		// Renvoi
 		return $retour;
 	}
 	
 	/**
 	 * Exécution d'une requête de type UPDATE, INSERT, DELETE. La requête est préparée, les paramètres sont à fournir séparément
+	 *
 	 * @param string $request la requête à exécuter
 	 * @param mixed $params les paramètres de la requête (facultatif, défaut : array())
 	 * @return int le nombre de lignes affectées ou le nouvel id suivant la requête
@@ -218,25 +224,26 @@ class Database
 	}
 	
 	/**
-	 * Renvoie la liste des champs de la table
+	 * Renvoie l'objet de description de la table
+	 *
 	 * @param string $table le nom de la table
-	 * @return array la liste des champs
+	 * @return DatabaseTable l'objet de la table
 	 */
 	public function getTable($table)
 	{
 		// Si pas encore défini
-		if (!isset($this->_fields[$table]))
+		if (!isset($this->_tables[$table]))
 		{
 			// Init
-			$this->_fields[$table] = new DatabaseTable($this, $table);
+			$this->_tables[$table] = new DatabaseTable($this, $table);
 		}
 		
-		// Renvoi
-		return $this->_fields[$table];
+		return $this->_tables[$table];
 	}
 	
 	/**
 	 * Obtient un serveur de base de donnée
+	 *
 	 * @param string $name le nom du serveur dans le fichier de configuration (facultatif, défaut : DEFAULT_DB)
 	 * @return Database l'objet de connection au serveur
 	 * @throws SCException
@@ -251,7 +258,7 @@ class Database
 			}
 			else
 			{
-				throw new SCException('Impossible de se connecter à la base de données', 1, 'Aucune configuration fournie');
+				throw new SCException('Impossible de se connecter à la base de données : aucune configuration fournie');
 			}
 		}
 		
@@ -297,6 +304,7 @@ class DatabaseTable implements Iterator
 	
 	/**
 	 * Constructeur de la classe
+	 *
 	 * @param Database $database l'objet Database de rattachement
 	 * @param string $table le nom de la table cible
 	 */
@@ -315,6 +323,7 @@ class DatabaseTable implements Iterator
 
 	/**
 	 * Implémentation Iterator - Reset de la position
+	 *
 	 * @return void
 	 */
 	public function rewind()
@@ -324,6 +333,7 @@ class DatabaseTable implements Iterator
 
 	/**
 	 * Implémentation Iterator - Valeur de l'index courant
+	 *
 	 * @return mixed la valeur de l'index
 	 */
 	public function current()
@@ -333,6 +343,7 @@ class DatabaseTable implements Iterator
 
 	/**
 	 * Implémentation Iterator - Obtention de l'index courant
+	 *
 	 * @return int|string la clé courante
 	 */
 	public function key()
@@ -342,6 +353,7 @@ class DatabaseTable implements Iterator
 
 	/**
 	 * Implémentation Iterator - Index suivant
+	 *
 	 * @return void
 	 */
 	public function next()
@@ -351,6 +363,7 @@ class DatabaseTable implements Iterator
 
 	/**
 	 * Implémentation Iterator - Test de la validité de l'index courant
+	 *
 	 * @return void
 	 */
 	public function valid()
@@ -360,6 +373,7 @@ class DatabaseTable implements Iterator
 	
 	/**
 	 * Renvoie l'objet Database de rattachement
+	 *
 	 * @return Database l'objet Database
 	 */
 	public function getDatabase()
@@ -369,6 +383,7 @@ class DatabaseTable implements Iterator
 	
 	/**
 	 * Renvoie le nom de la table cible
+	 *
 	 * @return string le nom de la table
 	 */
 	public function getName()
@@ -378,6 +393,7 @@ class DatabaseTable implements Iterator
 	
 	/**
 	 * Mise à jour des données de la table
+	 *
 	 * @return void
 	 */
 	public function update()
@@ -519,6 +535,7 @@ class DatabaseTable implements Iterator
 	
 	/**
 	 * Indique si un champ est défini - méthode magique
+	 *
 	 * @param string $name nom du champ
 	 * @return boolean un confirmation si le champ est défini ou non
 	 */
@@ -529,6 +546,7 @@ class DatabaseTable implements Iterator
 	
 	/**
 	 * Indique si un champ est défini
+	 *
 	 * @param string $name nom du champ
 	 * @return boolean un confirmation si le champ est défini ou non
 	 */
@@ -540,6 +558,7 @@ class DatabaseTable implements Iterator
 	
 	/**
 	 * Renvoie un champ - méthode magique
+	 *
 	 * @param string $name nom du champ
 	 * @return DatabaseField le champ
 	 * @throws SCException
@@ -552,6 +571,7 @@ class DatabaseTable implements Iterator
 	
 	/**
 	 * Renvoie la liste des champs
+	 *
 	 * @return array la liste des champs, sous la forme array( nom => objet )
 	 */
 	public function getFields()
@@ -561,6 +581,7 @@ class DatabaseTable implements Iterator
 	
 	/**
 	 * Renvoie un champ
+	 *
 	 * @param string $name nom du champ
 	 * @return DatabaseField le champ
 	 * @throws SCException
@@ -573,12 +594,12 @@ class DatabaseTable implements Iterator
 			throw new SCException('Récupération d\'un champ non existant : '.$name);
 		}
 		
-		// Renvoi
 		return $this->_fields[$name];
 	}
 	
 	/**
 	 * Renvoie les noms des champs de la table
+	 *
 	 * @return array les noms des champs
 	 */
 	public function getFieldsNames()
@@ -589,6 +610,7 @@ class DatabaseTable implements Iterator
 	
 	/**
 	 * Renvoie le nom du champ primaire
+	 *
 	 * @return string le nom du champ, ou NULL si non défini
 	 */
 	public function getPrimary()
@@ -598,6 +620,7 @@ class DatabaseTable implements Iterator
 	
 	/**
 	 * Remplit un tableau avec les valeurs par défaut
+	 *
 	 * @param array $data les données déjà existantes (facultatif, défaut : array())
 	 * @return DatabaseResultRow l'objet de ligne de résultat
 	 */
@@ -611,12 +634,15 @@ class DatabaseTable implements Iterator
 			{
 				$data[$field] = $config->default;
 			}
+			else
+			{
+				$data[$field] = $config->formatField($data[$field]);
+			}
 		}
 		
 		// Génération du pseudo-résultat
 		$result = new DatabaseResult($this->getDatabase(), array($data), $this);
 		
-		// Renvoi
 		return $result[0];
 	}
 }
@@ -639,6 +665,7 @@ class DatabaseField
 	
 	/**
 	 * Constructeur de la classe
+	 *
 	 * @param DatabaseTable $table la table de rattachement
 	 * @param array $config les données de configuration
 	 */
@@ -651,6 +678,7 @@ class DatabaseField
 	
 	/**
 	 * Renvoie l'objet DatabaseTable de rattachement
+	 *
 	 * @return DatabaseTable l'objet DatabaseTable
 	 */
 	public function getTable()
@@ -660,6 +688,7 @@ class DatabaseField
 	
 	/**
 	 * Accesseur des données de l'objet
+	 *
 	 * @param string $var nom de la propriété demandée
 	 * @return mixed la valeur si défini, NULL sinon
 	 * @throws SCException
@@ -669,15 +698,15 @@ class DatabaseField
 		// Si non défini
 		if (!isset($this->_config[$var]) and !is_null($this->_config[$var]))
 		{
-			throw new SCException('Récupération d\'une propriété non définie', 999, 'Propriété : '.$var);
+			throw new SCException('Récupération d\'une propriété non définie ('.$var.')');
 		}
 		
-		// Renvoi
 		return $this->_config[$var];
 	}
 	
 	/**
 	 * Formate un champ en fonction de sa configuration (longueur, format...)
+	 *
 	 * @param mixed $value la valeur à stocker
 	 * @return string|int la valeur prête pour insertion
 	 */
@@ -728,7 +757,7 @@ class DatabaseField
 						}
 						
 						// Conversion
-						$value = Date::getDate(intval($value))->toFormat($format);
+						$value = Date::getDate(intval($value))->toString($format);
 					}
 					
 					// Renvoi
@@ -798,6 +827,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Constructeur de la classe de résultat
+	 *
 	 * @param Database $database l'objet Database de rattachement
 	 * @param array $rows les lignes de résultat
 	 * @param string|DatabaseTable|array $request la requête originale, ou la table ou liste de tables correspondant aux résultats (sous la forme array( nom => objet )
@@ -831,6 +861,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Renvoie la base de donnée de rattachement
+	 *
 	 * @return Database l'objet de la base de données
 	 */
 	public function getDatabase()
@@ -840,6 +871,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Renvoie la liste des tables concernées par la requête
+	 *
 	 * @return array la liste des tables
 	 */
 	public function getTables()
@@ -864,6 +896,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Renvoie l'objet de la table si existant
+	 *
 	 * @param string $name le nom de la table
 	 * @return DatabaseTable l'objet si existant, NULL sinon
 	 */
@@ -875,6 +908,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Renvoie la liste des noms des tables concernées par la requête
+	 *
 	 * @return array la liste des noms des tables
 	 */
 	public function getTablesNames()
@@ -889,6 +923,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Renvoie le nom de la première table de la requête, si définie
+	 *
 	 * @return string le nom de la table, ou NULL
 	 */
 	public function getFirstTableName()
@@ -899,6 +934,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Renvoie la liste des champs des tables concernées par la requête (peuvent ne pas être inclus dans le requête)
+	 *
 	 * @return array la liste des champs, sous la forme array( nom => objet )
 	 */
 	public function getTablesFields()
@@ -921,6 +957,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Indique si une des tables de la requête contient le champ demandé (pas forcément inclu dans la requête originale)
+	 *
 	 * @param string $name le nom du champ
 	 * @return boolean une confirmation
 	 */
@@ -932,6 +969,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Renvoi l'objet du champ demandé, s'il existe sur une des tables de la requête (pas forcément inclu dans la requête originale)
+	 *
 	 * @param string $name le nom du champ
 	 * @return DatabaseField le champ si existant, NULL sinon
 	 */
@@ -943,6 +981,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Renvoie la requête d'origine
+	 *
 	 * @return string la requête (NULL si non définie)
 	 */
 	public function getRequest()
@@ -952,6 +991,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Renvoie les paramètres de la requête d'origine
+	 *
 	 * @return array les paramètres (NULL si non définis)
 	 */
 	public function getParams()
@@ -961,6 +1001,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Récupère la pagination de la requête
+	 *
 	 * @return array les données de pagination : start, end, range, page
 	 */
 	protected function _getPagination()
@@ -1001,6 +1042,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Renvoie l'index de la première ligne dans le total des résultats de la requête (commence à 0)
+	 *
 	 * @return int l'index de début
 	 */
 	public function getStart()
@@ -1011,6 +1053,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Renvoie l'index de la dernière ligne dans le total des résultats de la requête (commence à 0)
+	 *
 	 * @return int l'index de fin
 	 */
 	public function getEnd()
@@ -1021,6 +1064,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Renvoie la limite maximum de résultat
+	 *
 	 * @return int|boolean la limite si existante, false sinon
 	 */
 	public function getRange()
@@ -1031,6 +1075,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Renvoie la page courante dans la pagination des résultats de la requête (commence à 0)
+	 *
 	 * @return int la page courante
 	 */
 	public function getPage()
@@ -1041,7 +1086,8 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Obtention du total des résultats possibles
-	 * @param boolean $fallbackToCount si true, la fonction renvoie le nombre de lignes stocké si elle n'est pas en mesure d'obtenir le total (facultatif, défaut : true) 
+	 *
+	 * @param boolean $fallbackToCount si true, la fonction renvoie le nombre de lignes stocké si elle n'est pas en mesure d'obtenir le total (facultatif, défaut : true)
 	 * @return int|boolean le nombre total, ou false si $fallbackToCount vaut false
 	 */
 	public function getTotal($fallbackToCount = true)
@@ -1072,6 +1118,7 @@ class DatabaseResult extends ArrayHolder {
 	
 	/**
 	 * Convertit la liste des résultats en instances de la classe fournie
+	 *
 	 * @param string $class le nom de la classe
 	 * @return array la liste des instances crées
 	 */
@@ -1099,6 +1146,7 @@ class DatabaseResultRow extends DataHolderWatcher {
 	
 	/**
 	 * Constructeur de la classe de résultat
+	 *
 	 * @param DatabaseResult $result l'objet DatabaseResult de rattachement
 	 * @param array $data les données de la ligne de résultat
 	 */
@@ -1112,6 +1160,7 @@ class DatabaseResultRow extends DataHolderWatcher {
 	
 	/**
 	 * Renvoie l'objet de résultat de rattachement
+	 *
 	 * @return DatabaseResult l'objet de résultat
 	 */
 	public function getResult()
@@ -1121,6 +1170,7 @@ class DatabaseResultRow extends DataHolderWatcher {
 	
 	/**
 	 * Indique si la ligne est en cours de création pour la table donnée
+	 *
 	 * @param string $table la table, ou true pour récupérer la première table (facultatif, défaut : true)
 	 * @return boolean une confirmation
 	 */
@@ -1140,12 +1190,13 @@ class DatabaseResultRow extends DataHolderWatcher {
 		}
 		else
 		{
-			throw new SCException('Test d\'existence sur une table non utilisée', 999, 'Table : '.$table);
+			throw new SCException('Test d\'existence sur une table non utilisée ('.$table.')');
 		}
 	}
 	
 	/**
 	 * Méthode de définition des données de la ligne
+	 *
 	 * @param string|array $index le nom de l'index à modifier, ou un tableau de valeurs avec les index en clés
 	 * @param mixed $value la valeur à affecter (ignorée si $index est un tableau) (facultatif, défaut : NULL)
 	 * @return void
@@ -1176,13 +1227,13 @@ class DatabaseResultRow extends DataHolderWatcher {
 			// Si non existant
 			if (is_null($field))
 			{
-				throw new SCException('Ecriture d\'un champ non existant', 'Champ : '.$index);
+				throw new SCException('Ecriture d\'un champ non existant ('.$index.')');
 			}
 			
 			// Type de champ
 			if ($field->primary)
 			{
-				throw new SCException('Modification d\'un champ primaire interdite', 'Champ : '.$index.', table : '.$field->getTable()->getName());
+				throw new SCException('Modification d\'un champ primaire interdite (Champ : '.$index.', table : '.$field->getTable()->getName().')');
 			}
 			
 			// Ecriture
@@ -1192,6 +1243,7 @@ class DatabaseResultRow extends DataHolderWatcher {
 	
 	/**
 	 * Déclenche l'enregistrement des champs modifiés, et crée les entrées si nécessaire
+	 *
 	 * @param string|array|boolean $tables la ou les tables à enregistrer, true pour utiliser automatiquement la première, ou false pour toutes (facultatif, défaut : false)
 	 * @return int|boolean l'id de l'entrée de la première table enregistrée, ou false en cas d'erreur
 	 */
@@ -1201,7 +1253,7 @@ class DatabaseResultRow extends DataHolderWatcher {
 		$tablesNames = $this->getResult()->getTablesNames();
 		if (count($tablesNames) === 0)
 		{
-			throw new SCException('Aucune table définie pour la requête', 999, 'Requête : INSERT/UPDATE');
+			throw new SCException('Aucune table définie pour la requête');
 		}
 		$return = false;
 		$modified = $this->getModifiedList();
@@ -1298,9 +1350,6 @@ class DatabaseResultRow extends DataHolderWatcher {
 				{
 					// Requête
 					$this->_data[$primary] = $this->getResult()->getDatabase()->exec('INSERT INTO `'.$name.'` ('.implode(', ', $insert).') VALUES ('.implode(', ', array_fill(0, count($insert), '?')).');', $values);
-					
-					// Mise à jour du cache de la factory
-					Factory::updateInstanceCache(get_class($this), $this, $this->_data[$primary]);
 				}
 				
 				// Valeur renvoyée
@@ -1311,7 +1360,7 @@ class DatabaseResultRow extends DataHolderWatcher {
 			}
 			else
 			{
-				throw new SCException('Opération sur une table non utilisée', 999, 'Requête : INSERT/UPDATE, table : '.$table);
+				throw new SCException('Opération sur une table non utilisée ('.$table.')');
 			}
 		}
 		
@@ -1323,6 +1372,7 @@ class DatabaseResultRow extends DataHolderWatcher {
 	
 	/**
 	 * Suppression d'une ligne de résultat
+	 *
 	 * @param string|array|boolean $tables la ou les tables à effacer, true pour utiliser automatiquement la première, ou false pour toutes (facultatif, défaut : false)
 	 * @return boolean la confirmation de la suppression de l'entrée de la première table enregistrée
 	 */
@@ -1332,7 +1382,7 @@ class DatabaseResultRow extends DataHolderWatcher {
 		$tablesNames = $this->getResult()->getTablesNames();
 		if (count($tablesNames) === 0)
 		{
-			throw new SCException('Aucune table définie pour la requête', 999, 'Requête : DELETE');
+			throw new SCException('Aucune table définie pour la requête');
 		}
 		$firstTable = true;
 		$return = false;
@@ -1378,7 +1428,7 @@ class DatabaseResultRow extends DataHolderWatcher {
 			}
 			else
 			{
-				throw new SCException('Opération sur une table non utilisée', 999, 'Requête : DELETE, table : '.$table);
+				throw new SCException('Opération sur une table non utilisée ('.$table.')');
 			}
 			
 			$firstTable = false;

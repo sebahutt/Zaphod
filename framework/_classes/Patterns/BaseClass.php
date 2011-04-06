@@ -47,6 +47,7 @@ abstract class BaseClass extends DataHolderWatcherHolder
 	
 	/**
 	 * Constructeur de la classe
+	 *
 	 * @param array|DatabaseResultRow $data données pour l'objet, ou array() pour un nouvel objet (facultatif, défaut : array())
 	 */
 	public function __construct($data = array())
@@ -66,6 +67,7 @@ abstract class BaseClass extends DataHolderWatcherHolder
 	
 	/**
 	 * Indique si l'élément est enregistrable
+	 *
 	 * @return boolean une confirmation
 	 */
 	public function isSavable()
@@ -75,6 +77,7 @@ abstract class BaseClass extends DataHolderWatcherHolder
 	
 	/**
 	 * Active l'enregistrement de l'élément
+	 *
 	 * @param boolean $lock indique s'il faut vérouiller l'état de manière définitive (facultatif, défaut : false)
 	 * @return boolean true si l'enregistrement a été activé, false sinon
 	 */
@@ -92,6 +95,7 @@ abstract class BaseClass extends DataHolderWatcherHolder
 	
 	/**
 	 * Désactive l'enregistrement de l'élément
+	 *
 	 * @param boolean $lock indique s'il faut vérouiller l'état de manière définitive (facultatif, défaut : false)
 	 * @return boolean true si l'enregistrement a été désactivé, false sinon
 	 */
@@ -109,6 +113,7 @@ abstract class BaseClass extends DataHolderWatcherHolder
 	
 	/**
 	 * Obtention du nom du serveur de la table de correspondance
+	 *
 	 * @return string le nom de la table
 	 */
 	public function getServerName()
@@ -124,6 +129,7 @@ abstract class BaseClass extends DataHolderWatcherHolder
 	
 	/**
 	 * Obtention du nom de la table de correspondance
+	 *
 	 * @return string le nom de la table
 	 */
 	public function getTableName()
@@ -139,6 +145,7 @@ abstract class BaseClass extends DataHolderWatcherHolder
 	
 	/**
 	 * Obtention de l'objet Database de référence
+	 *
 	 * @return Database l'objet Database
 	 */
 	public function getServer()
@@ -148,12 +155,12 @@ abstract class BaseClass extends DataHolderWatcherHolder
 			$this->_server = Database::get($this->getServerName());
 		}
 		
-		// Renvoi
 		return $this->_server;
 	}
 	
 	/**
 	 * Obtention de l'objet DatabaseTable de référence
+	 *
 	 * @return DatabaseTable l'objet DatabaseTable
 	 */
 	public function getTable()
@@ -163,12 +170,12 @@ abstract class BaseClass extends DataHolderWatcherHolder
 			$this->_table = $this->getServer()->getTable($this->getTableName());
 		}
 		
-		// Renvoi
 		return $this->_table;
 	}
 	
 	/**
 	 * Renvoie la liste des champs de l'objet
+	 *
 	 * @return array la liste des champs
 	 */
 	public function getFieldsNames()
@@ -178,6 +185,7 @@ abstract class BaseClass extends DataHolderWatcherHolder
 	
 	/**
 	 * Renvoie le nom du champ primaire
+	 *
 	 * @return string|boolean le nom du champ primaire, ou NULL s'il n'y en a pas
 	 */
 	public function getPrimaryField()
@@ -187,6 +195,7 @@ abstract class BaseClass extends DataHolderWatcherHolder
 	
 	/**
 	 * Renvoie l'identifiant primaire de l'entrée
+	 *
 	 * @return int la valeur du champ primaire si défini, ou NULL
 	 */
 	public function id()
@@ -197,6 +206,7 @@ abstract class BaseClass extends DataHolderWatcherHolder
 	
 	/**
 	 * Indique si l'objet est en cours de création
+	 *
 	 * @return boolean une confirmation
 	 */
 	public function isNew()
@@ -206,16 +216,18 @@ abstract class BaseClass extends DataHolderWatcherHolder
 	
 	/**
 	 * Vérifie si un champ existe sur la table
+	 *
 	 * @param string $field le nom du champ
 	 * @return boolean la confirmation que le champ existe ou non
 	 */
 	public function hasField($field)
 	{
-		return $this->getTable()->hasField($var);
+		return $this->getTable()->hasField($field);
 	}
 	
 	/**
 	 * Mise à jour des données de l'objet et enregistrement : si l'objet est nouveau (pas d'id), il est créé dans la base, sinon il est mis à jour.
+	 *
 	 * @param array $data les données à mettre à jour (facultatif, défaut : array())
 	 * @return int l'id de l'élément, ou false en cas d'erreur (ex : aucun champ défini)
 	 */
@@ -231,11 +243,22 @@ abstract class BaseClass extends DataHolderWatcherHolder
 		}
 		
 		// Relai
-		return $this->_data->save($this->getTableName());
+		$new = $this->isNew();
+		$result = $this->_data->save($this->getTableName());
+		
+		// Si nouveau
+		if ($new and $result !== false)
+		{
+			// Mise à jour du cache de la factory
+			Factory::updateInstanceCache(get_class($this), $this, $this->id());
+		}
+		
+		return $result;
 	}
 	
 	/**
 	 * Suppression d'un élément
+	 *
 	 * @return boolean la confirmation de la suppression
 	 */
 	public function delete()

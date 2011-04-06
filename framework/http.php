@@ -8,12 +8,15 @@
 require_once('basics.php');
 require_once('init.php');
 
+// Parsers disponibles
+Request::addParser('HttpRequestParser');		// Utilisation de l'url
+
 // Routes disponibles
-Request::addRoute(new HttpPageRoute());				// Chargement par la base de pages
+Request::addRoute('HttpPageRoute');				// Chargement par la base de pages
 
 // Gestionnaires
-Request::addHandler(new HttpAjaxPageHandler());		// Requête AJAX
-Request::addHandler(new HttpPageHandler());			// Requête standard
+Request::addHandler('HttpAjaxPageHandler');		// Requête AJAX
+Request::addHandler('HttpPageHandler');			// Requête standard
 
 // Exécution
 Request::run();

@@ -11,6 +11,7 @@ class Folder extends FileSystemElement {
 	
 	/**
 	 * Clear object cache data
+	 * 
 	 * @return void
 	 * @see FileSystemElement::clearCache()
 	 */
@@ -22,6 +23,7 @@ class Folder extends FileSystemElement {
 	
 	/**
 	 * Check if the element is a folder
+	 * 
 	 * @return boolean always return true
 	 */
 	public function isFolder()
@@ -31,6 +33,7 @@ class Folder extends FileSystemElement {
 	
 	/**
 	 * Get the mime type
+	 * 
 	 * @return string always return 'folder'
 	 */
 	public function getMimeType()
@@ -40,6 +43,7 @@ class Folder extends FileSystemElement {
 	
 	/**
 	 * Check if the given name already exists in the folder, and if it does, return the closest available name
+	 * 
 	 * @param string $name the name to check
 	 * @return string the final available name
 	 */
@@ -73,6 +77,7 @@ class Folder extends FileSystemElement {
 	
 	/**
 	 * Get folder children
+	 * 
 	 * @param array $options an array with any of the following options:
 	 * 	- boolean files true to include files (default : true)
 	 * 	- boolean folders true to include folders (default : true)
@@ -81,6 +86,7 @@ class Folder extends FileSystemElement {
 	 * 	- string|array sort a string or an array of string of properties to sort the children on (possible values: 'name', 'size', 'modified')
 	 * 	- string|array sortDirection a string or an array of string (if sort is an array) of sorting direction (possible values: 'ASC', 'DESC')
 	 * 	- boolean underscoreFirst when sorting on name, true to put files beginning with a '_' on top (default : true)
+	 * 
 	 * @return array the children elements
 	 */
 	public function getChildren($options = array())
@@ -211,19 +217,28 @@ class Folder extends FileSystemElement {
 	
 	/**
 	 * Empty the folder
+	 * 
 	 * @return boolean true if successfully emptied, else false
 	 */
 	public function emptyFolder()
 	{
+		$retour = true;
+		
 		$children = $this->getChildren(array('hideSystem' => false));
 		foreach ($children as $child)
 		{
-			$child->delete();
+			if (!$child->delete())
+			{
+				$retour = false;
+			}
 		}
+		
+		return $retour;
 	}
 	
 	/**
 	 * Delete the folder
+	 * 
 	 * @return boolean true if successfully deleted, else false
 	 */
 	public function delete()

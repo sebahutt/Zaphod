@@ -63,6 +63,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Clear object cache data
+	 * 
 	 * @return void
 	 * @see FileSystemElement::clearCache()
 	 */
@@ -76,6 +77,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Check if the element is a file
+	 * 
 	 * @return boolean always return true
 	 */
 	public function isFile()
@@ -85,6 +87,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Check if the file is an image
+	 * 
 	 * @return boolean true if the file is an image, else false
 	 */
 	public function isImage()
@@ -94,6 +97,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Check if the file is an web image (that browsers can display)
+	 * 
 	 * @return boolean true if the file is a web image, else false
 	 */
 	public function isWebImage()
@@ -103,6 +107,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Check if the file is an editable image
+	 * 
 	 * @return boolean true if the file is an editable image, else false
 	 */
 	public function isEditableImage()
@@ -112,6 +117,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Get file mime infos
+	 * 
 	 * @return array file mime infos
 	 */
 	protected function _getMime()
@@ -148,6 +154,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Get the file mime type
+	 * 
 	 * @return string the mime type
 	 */
 	public function getMimeType()
@@ -158,6 +165,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Get the file charset (if defined)
+	 * 
 	 * @return string the file charset, or NULL
 	 */
 	public function getCharset()
@@ -168,6 +176,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Get full mime type for download (with charset if defined)
+	 * 
 	 * @return string le type mime complet du fichier
 	 */
 	public function getFullMimeType()
@@ -185,6 +194,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Get last modified time
+	 * 
 	 * @return int the last modified time as a Unix timestamp
 	 */
 	public function getModifiedTime()
@@ -200,6 +210,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Get file contents
+	 * 
 	 * @return string the file contents
 	 */
 	public function getContents()
@@ -209,6 +220,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Write file contents
+	 * 
 	 * @param string $content the content to write
 	 * @return boolean true if the content has been written, else false
 	 */
@@ -219,6 +231,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Delete the file
+	 * 
 	 * @return boolean true if the file has been delete, else false
 	 */
 	public function delete()
@@ -231,6 +244,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Clear a image thumbnails cache
+	 * 
 	 * @return void
 	 */
 	public function clearThumbnails()
@@ -252,6 +266,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Builds the file HTML code : if it is an image, a <IMG> is used, else a <A>
+	 * 
 	 * @param string $title any title text for the image/link
 	 * @param string $alt any alt text for the image, or text for the link
 	 * @param string $add any extra HTML code to add to the img
@@ -278,6 +293,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Get an image thumbnail, with caching
+	 * 
 	 * @param int|boolean $width final image width, or false to use a proportional width to $height
 	 * @param int|boolean $height final image height, false to use a proportional height to $width, or NULL to use same as $width
 	 * @param array $options resizing options (see File::resize)
@@ -289,7 +305,7 @@ class File extends FileSystemElement {
 		// If image is not editable
 		if (!$this->isEditableImage())
 		{
-			throw new SCException('Non-editable file type : '.$this->getMimeType());
+			throw new SCException('Type de fichier non éditable ('.$this->getMimeType().')');
 		}
 		
 		// Size check
@@ -339,12 +355,14 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Resize the image
+	 * 
 	 * @param int|boolean $width final image width, or false to use a proportional width to $height
 	 * @param int|boolean $height final image height, false to use a proportional height to $width, or NULL to use same as $width
 	 * @param string|File|boolean $target path or File object of the target image, or false to erase the original image
 	 * @param array $options an array with any of the following options
 	 * 	 - boolean crop true to crop image to fit final size, false to resize without cropping (default : false)
 	 *   - boolean enableStretch true to enable stretching if image is too small (default : true)
+	 * 
 	 * @return Image the resized image object
 	 * @throws SCException if the file is not an editable image
 	 */
@@ -353,7 +371,7 @@ class File extends FileSystemElement {
 		// Image check
 		if (!$this->isEditableImage())
 		{
-			throw new SCException('Non-editable file type : '.$this->getMimeType());
+			throw new SCException('Type de fichier non éditable ('.$this->getMimeType().')');
 		}
 		
 		// Options
@@ -485,14 +503,14 @@ class File extends FileSystemElement {
 					break;
 				
 				default:
-					throw new SCException('Unsupported image format');
+					throw new SCException('Format d\'image non supporté');
 					break;
 			}
 			
 			// Target image
 			if (!$resized = imagecreatetruecolor($width, $height))
 			{
-				throw new SCException('Unable to create resized image');
+				throw new SCException('Impossible de créer l\'image reidmensionnée');
 			}
 			
 			// Transparency setup
@@ -558,6 +576,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Display the file in the browser
+	 * 
 	 * @param boolean $download true to force download, false to view in broser (if available)
 	 * @param boolean $filename final name for download (only if $download is true), or NULL to use file name
 	 * @return void
@@ -580,6 +599,7 @@ class File extends FileSystemElement {
 	
 	/**
 	 * Get the mime type of a file according to file extension (whereas FileManagers use detection)
+	 * 
 	 * @param string $path the file path, or the bare extension
 	 * @param string $default the default mime if it can't be detected
 	 * @return string the found mime type

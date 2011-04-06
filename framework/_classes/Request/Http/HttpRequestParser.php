@@ -30,25 +30,25 @@ class HttpRequestParser implements iRequestParser {
 	protected $_rewriteString;
 	
 	/**
-	 * Tente d'analyser la requête
-	 * @return boolean la confirmation que la requête a pu être traitée
+	 * Constructeur
+	 * @param string $request la requête à analyser
 	 */
-	public function run()
+	public function __construct($request)
 	{
-		// Vérification
-		if (!isset($_SERVER['REQUEST_URI']))
-		{
-			return false;
-		}
-		
 		// Mémorisation
-		$this->_request = $_SERVER['REQUEST_URI'];
+		$this->_request = $request;
 		
 		// Traitement
 		$this->_request = removeInitialSlash($this->_request);
 		if (strlen(URL_FOLDER) > 0 and strpos($this->_request, URL_FOLDER) === 0)
 		{
 			$this->_request = substr($this->_request, strlen(URL_FOLDER));
+		}
+		
+		// Détection de slash terminal non désiré (élimine les risques de duplicate content)
+		if (strlen($this->_request) > 0 and substr($this->_request, -1) === '/' and method_exists(Request::getResponse(), 'redirect'))
+		{
+			Request::getResponse()->redirect(removeTrailingSlash($this->_request), 301);
 		}
 		$this->_request = removeTrailingSlash($this->_request);
 		
@@ -59,35 +59,48 @@ class HttpRequestParser implements iRequestParser {
 		
 		// Route finale
 		$this->_rewriteString = Request::getGET('__rewrite', false, false);
-		$this->_routeQuery = ($this->_routeQuery !== false) ? $this->_routeQuery : $this->_baseQuery;
+		$this->_routeQuery = $this->_baseQuery;
 		
-		return true;
+		// Log
+		Log::info('Chemin de routage : \''.$this->_routeQuery.'\'');
+		
+		// Ecouteur de changement de paramètres GET
+		Env::addAction('request.clearget', array($this, 'updateQueryString'));
 	}
 	
 	/**
-	 * Tente d'effectuer la redirection interne de la requête. Si la redirection échoue, la configuration initiale est conservée.
-	 * Les références à la requête initiale sont conservées (url, etc...), seules les fonctions relatives au routage
-	 * doivent être impactées (getBaseQuery, par exemple)
-	 * @param string $request la nouvelle requête à prendre en compte
-	 * @return boolean la confirmation que la requête a pu être traitée
+	 * Vérifie si la classe courante est en mesure d'analyser la requête
+	 *
+	 * @param string $request la requête à analyser, ou NULL pour utiliser l'environnement
+	 * @return iRequestParser|boolean une instance de la classe si la requête peut être gérée, false sinon
 	 */
-	public function redirect($request)
+	public static function match($request = NULL)
 	{
-		// Remplacement
-		$request = removeInitialSlash(removeTrailingSlash($request));
-		if (strlen(URL_FOLDER) > 0 and strpos($request, URL_FOLDER) === 0)
+		// Vérification
+		if (is_null($request))
 		{
-			$request = substr($request, strlen(URL_FOLDER));
+			if (!isset($_SERVER['REQUEST_URI']))
+			{
+				return false;
+			}
+			$request = $_SERVER['REQUEST_URI'];
 		}
 		
-		$queryParts = explode('?', $request, 2);
-		$this->_routeQuery = array_shift($queryParts);
-		
-		return true;
+		return new HttpRequestParser($request);
+	}
+	
+	/**
+	 * Met à jour la chaîne de requête GET
+	 * @return void
+	 */
+	public function updateQueryString()
+	{
+		$this->_query = $this->_baseQuery.Request::getQueryString();
 	}
 	
 	/**
 	 * Renvoie la chaîne de la requête en cours, avec ses paramètres GET éventuels
+	 *
 	 * @return string la requête
 	 */
 	public function getRequest()
@@ -97,6 +110,7 @@ class HttpRequestParser implements iRequestParser {
 	
 	/**
 	 * Renvoie la chaîne de réécriture, si définie
+	 *
 	 * @return string la chaîne de réécriture, ou false si non définie
 	 */
 	public function getRewriteString()
@@ -106,6 +120,7 @@ class HttpRequestParser implements iRequestParser {
 	
 	/**
 	 * Renvoie la requête complète en cours
+	 *
 	 * @param array $params un tableau associatif des paramètres à ajouter/modifier par rapport à la requête originale (facultatif)
 	 * @return string la requête
 	 */
@@ -123,6 +138,7 @@ class HttpRequestParser implements iRequestParser {
 	
 	/**
 	 * Renvoie la requête complète, formattée pour le champ action d'un formulaire
+	 *
 	 * @param array $params un tableau associatif des paramètres à ajouter/modifier par rapport à la requête originale (facultatif)
 	 * @return string la requête adaptée
 	 */
@@ -134,6 +150,7 @@ class HttpRequestParser implements iRequestParser {
 	
 	/**
 	 * Renvoie la requête de base, sans paramètres, qui sert de référence
+	 *
 	 * @return string la requête
 	 */
 	public function getBaseQuery()
@@ -143,6 +160,7 @@ class HttpRequestParser implements iRequestParser {
 	
 	/**
 	 * Renvoie la requête de référence pour le routage
+	 *
 	 * @return string la requête
 	 */
 	public function getRouteQuery()

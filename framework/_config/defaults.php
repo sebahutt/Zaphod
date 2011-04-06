@@ -12,7 +12,7 @@
 	$config['sys']['updating'] = 			false;									// Site en cours de mise à jour
 	$config['sys']['maxFileSize'] = 		ini_get('upload_max_filesize');			// Taille maximale d'upload de fichiers
 	$config['sys']['dev'] = 				array('127.0.',							// Serveurs de développement
-												  '192.168.',						
+												  '192.168.',
 												  '10.100.');
 	
 	// Localisation
@@ -20,12 +20,19 @@
 	$config['zone']['locale'] = 			'FR-fr';								// Locale par défaut
 	$config['zone']['timezone'] = 			'Europe/Paris';							// Fuseau horaire par défaut
 	
-	// Logging
-	$config['log']['display'] = 			false;									// Affiche log
-	$config['log']['store'] = 				false;									// Enregistre le log dans un fichier
-	$config['log']['verbose'] = 			false;									// Log plus détaillé
-	$config['log']['delayed'] = 			true;									// Retarde l'affichage du log jusqu'à l'affichage de la page,
-																					// Pour ne pas générer de sortie avant l'envoi des headers
+	/*
+	 * Configuration du log
+	 *
+	 * Les niveaux de log suivants sont disponibles :
+	 * LEVEL_FATAL (0) - erreur fatale, système corrompu
+	 * LEVEL_ERROR (1) - erreur possible à récupérer
+	 * LEVEL_WARNING (2) - avertissement, risque d'erreur
+	 * LEVEL_INFO (4) - information sur le déroulement de la requête
+	 * LEVEL_DEBUG (8) - information de debug
+	 */
+	$config['log']['rotate'] = 				15;										// Nombre de jours de conservation des fichiers de log
+	$config['log']['store'] = 				4;										// Niveau de log dans un fichier, ou false pour désactiver
+	$config['log']['display'] = 			false;									// Niveau de log en sortie web, ou false pour désactiver
 	
 	// Mail
 	$config['mail']['mode'] = 				'php';									// Mode d'envoi : php ou smtp
@@ -50,7 +57,7 @@
 	 * Pour chaque code d'erreur, il est possible d'indiquer :
 	 * - un chemin absolu vers le fichier à afficher (doit comporter une extension .php ou .html)
 	 * - un chemin indiquant la ressource à charger (si géré par le router en cours)
-	 * 
+	 *
 	 * La clé 'all' permet d'indiquer le fichier/la ressource à charger pour toutes les autres erreurs, et sera également utilisée
 	 * si les valeurs précisées ci-dessus échouent
 	 */

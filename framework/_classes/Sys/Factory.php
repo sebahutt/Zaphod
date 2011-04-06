@@ -11,6 +11,7 @@ class Factory extends StaticClass {
 	
 	/**
 	 * Obtention d'une instance
+	 * 
 	 * @param string $class le nom de la classe de l'instance
 	 * @param array $data les données de l'instance (ignorées si l'instance existe déjà) (facultatif, défaut : array())
 	 * @param string $primary le nom du champ primaire, ou NULL pour détecter automatiquement (facultatif, défaut : NULL)
@@ -43,6 +44,7 @@ class Factory extends StaticClass {
 	
 	/**
 	 * Met à jour ou ajoute une instance dans le cache
+	 * 
 	 * @param string $class le nom de la classe de l'instance
 	 * @param BaseClass $instance les données de l'instance (ignorées si l'instance existe déjà) (facultatif, défaut : array())
 	 * @param int $id l'identifiant de l'instance
@@ -54,6 +56,7 @@ class Factory extends StaticClass {
 	
 	/**
 	 * Nettoie le cache d'une instance
+	 * 
 	 * @param string $class le nom de la classe de l'instance
 	 * @param int $id l'identifiant de l'instance
 	 */

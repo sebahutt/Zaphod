@@ -53,7 +53,6 @@ if (get_magic_quotes_gpc())
 			$value = stripslashes($value);
 		}
 		
-		// Renvoi
 		return $value;
 	}
 	
@@ -65,7 +64,7 @@ if (get_magic_quotes_gpc())
 }
 
 /**
- * Fallback if json_encode is not defined
+ * Fallback si json_encode n'est pas défini
  * Original code from multiple contributors on json_encode's manual page :
  * @url http://fr.php.net/manual/en/function.json-encode.php
  */
@@ -138,6 +137,7 @@ if (!function_exists('json_encode'))
 
 /**
  * Traduction d'un texte
+ *
  * @param string $text le texte à traduire
  * @return string la traduction trouvée, ou le texte original si aucune n'est trouvée
  */
@@ -153,6 +153,7 @@ function __($text)
 
 /**
  * Affiche une traduction
+ *
  * @param string $text le texte à traduire
  * @return void
  */
@@ -168,6 +169,7 @@ function _e($text)
 
 /**
  * Affiche une traduction en échappant les apostrophes (ex : pour javascript)
+ *
  * @param string $text le texte à traduire
  * @return void
  */
@@ -183,6 +185,7 @@ function _es($text)
 
 /**
  * Renvoie une traduction avec une valeur soit au singulier soit au pluriel
+ *
  * @param int $value la valeur à tester
  * @param string $none le texte pour une valeur de 0 (paramètre facultatif)
  * @param string $singular le texte pour le singulier (et 0 si le paramètre $none n'est pas précisé)
@@ -201,6 +204,7 @@ function _n($value, $none, $singular, $plural = NULL)
 
 /**
  * Obtention de la locale active
+ *
  * @param string|boolean $default la valeur par défaut si aucune locale n'est active
  * @return string|boolean la locale, ou $default si aucune n'est active
  */
@@ -216,6 +220,7 @@ function __locale($default = false)
 
 /**
  * Ajoute un slash initial à un chemin si nécessaire
+ *
  * @param string $path le chemin à compléter
  * @param string le chemin complété
  */
@@ -231,6 +236,7 @@ function addInitialSlash($path)
 
 /**
  * Ajoute un slash final à un chemin si nécessaire
+ *
  * @param string $path le chemin à compléter
  * @param string le chemin complété
  */
@@ -246,6 +252,7 @@ function addTrailingSlash($path)
 
 /**
  * Retire le slash initial d'un chemin si nécessaire
+ *
  * @param string $path le chemin à nettoyer
  * @param string le chemin nettoyé
  */
@@ -256,10 +263,29 @@ function removeInitialSlash($path)
 
 /**
  * Retire le slash final d'un chemin si nécessaire
+ *
  * @param string $path le chemin à nettoyer
  * @param string le chemin nettoyé
  */
 function removeTrailingSlash($path)
 {
 	return rtrim($path, '/');
+}
+
+/**
+ * Effectue un htmlentities compatible avec l'UTF8
+ *
+ * @param string|array $string la chaîne ou un tableau de chaîne à traiter
+ * @return string|array la chaîne ou le tableau de chaîne traité
+ */
+function utf8entities($string)
+{
+	if (is_array($string))
+	{
+		return array_map('utf8entities', $string);
+	}
+	else
+	{
+		return htmlentities($string, ENT_COMPAT, 'UTF-8');
+	}
 }

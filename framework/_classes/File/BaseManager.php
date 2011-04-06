@@ -26,6 +26,7 @@ abstract class BaseManager {
 	
 	/**
 	 * Class constructor
+	 * 
 	 * @param Config|array $config manager configuration data object or an array
 	 */
 	public function __construct($config)
@@ -35,6 +36,7 @@ abstract class BaseManager {
 	
 	/**
 	 * Check if the file manager is in the local files system
+	 * 
 	 * @return boolean true if it is in the local files system, else false
 	 */
 	public function isLocal()
@@ -43,7 +45,20 @@ abstract class BaseManager {
 	}
 	
 	/**
+	 * Indique si le gestionnaire est parent du chemin demandé
+	 * 
+	 * @param string $path le chemin à tester
+	 * @return boolean une confirmation
+	 */
+	public function containsPath($path)
+	{
+		$root = $this->getLocalPath();
+		return (strlen($root) > 0 and strpos($path, $root) === 0);
+	}
+	
+	/**
 	 * Get the root folder of the file manager
+	 * 
 	 * @return Folder the corresponding folder
 	 */
 	public function getRoot()
@@ -60,6 +75,7 @@ abstract class BaseManager {
 	/**
 	 * Get the local path (in the file system) of the root of the file manager, if available,
 	 * else return false
+	 * 
 	 * @return string|boolean the path or false
 	 */
 	public function getLocalPath()
@@ -76,6 +92,7 @@ abstract class BaseManager {
 	/**
 	 * Get the web path of the root of the file manager, if available (files are accessible in HTTP),
 	 * else return false
+	 * 
 	 * @return string|boolean the path or false
 	 */
 	public function getWebPath()
@@ -91,6 +108,7 @@ abstract class BaseManager {
 	
 	/**
 	 * Get a file element within the file manager
+	 * 
 	 * @param string $path the path relative to the file manager root
 	 * @return File the file object
 	 */
@@ -101,6 +119,7 @@ abstract class BaseManager {
 	
 	/**
 	 * Get a folder element within the file manager
+	 * 
 	 * @param string $path the path relative to the file manager root
 	 * @return Folder the folder object
 	 */
@@ -111,6 +130,7 @@ abstract class BaseManager {
 	
 	/**
 	 * Get the mime type of a file (default function using file extension)
+	 * 
 	 * @param string $path the file path
 	 * @param string $default the default mime if it can't be detected
 	 * @return boolean false, mime type detection isn't available over FTP

@@ -17,6 +17,7 @@ class Statut extends BaseClass
 
 	/**
 	 * Obtention d'un statut par son id
+	 * 
 	 * @param int $id l'id du statut voulu
 	 * @return Vendeur le statut désiré, ou false si inexistant
 	 */
@@ -37,6 +38,7 @@ class Statut extends BaseClass
 	
 	/**
 	 * Liste des statuts existants
+	 * 
 	 * @return array la liste des statuts
 	 */
 	public static function getList()

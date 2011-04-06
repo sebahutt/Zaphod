@@ -14,6 +14,7 @@ class Number extends StaticClass
 	 * Conversion d'une couleur RVB en Hex
 	 * 
 	 * Convertitune couleur RVB en code Hex (sans le préfixe #) pour utilisation dans le code HTML par exemple
+	 * 
 	 * @param mixed $red La valeur de rouge, de 0 à 255
 	 * @param mixed $green La valeur de vert, de 0 à 255, ou NULL pour utiliser $red (facultatif, défaut : NULL)
 	 * @param mixed $blue La valeur de bleu, de 0 à 255, ou NULL pour utiliser $red (facultatif, défaut : NULL)
@@ -44,6 +45,7 @@ class Number extends StaticClass
 	 * Conversion d'une couleur RVB en Hex
 	 * 
 	 * Convertitune couleur RVB en code Hex (sans le préfixe #) pour utilisation dans le code HTML par exemple
+	 * 
 	 * @param string $hex le code hexa
 	 * @return array un tableau avec les 3 valeurs : array(r, v, b)
 	 */
@@ -60,6 +62,7 @@ class Number extends StaticClass
 	
 	/**
 	 * Obtention du poids de fichier en affichage humain (ko, mo...)
+	 * 
 	 * @param int $size le poids en octets
 	 * @return string le poids pour affichage, NULL si non défini (dossier par exemple)
 	 * @todo ajouter le support des locales pour le formattage des nombres
@@ -100,6 +103,7 @@ class Number extends StaticClass
 	
 	/**
 	 * Convertit la taille maximale d'upload en octets
+	 * 
 	 * @param string $upload_size la valeur de configuration
 	 * @return int la taille convertie
 	 */

@@ -64,12 +64,12 @@ require_once(PATH__CLASSES.'Env.php');
 Env::init();
 
 // Log
-Logger::globalLog('Environnement initialisé');
+Log::info('Environnement initialisé');
 if (isset($_SERVER['REQUEST_URI']))
 {
-	Logger::globalLog('Requête : '.$_SERVER['REQUEST_URI']);
+	Log::info('Requête : '.$_SERVER['REQUEST_URI']);
 }
 if (isset($_SERVER['HTTP_REFERER']))
 {
-	Logger::globalLog('Origine : '.$_SERVER['HTTP_REFERER']);
+	Log::info('Origine : '.$_SERVER['HTTP_REFERER']);
 }

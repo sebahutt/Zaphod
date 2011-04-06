@@ -4,30 +4,30 @@
  */
 class Request extends StaticClass {
 	/**
-	 * Objet d'analyse de la requête
-	 * @var RequestParser
+	 * Objets d'analyse de la requête
+	 * @var array
 	 */
-	protected static $_parser = NULL;
+	protected static $_parsers = array();
 	/**
 	 * Routes de requête
 	 * @var array
 	 */
 	protected static $_routes = array();
 	/**
-	 * Route finale de la requête
-	 * @var iRoute
-	 */
-	protected static $_route = NULL;
-	/**
 	 * Gestionnaires de requête
 	 * @var array
 	 */
 	protected static $_handlers = array();
 	/**
-	 * Gestionnaire final de la requête
-	 * @var array
+	 * Objet final de gestion de la requête
+	 * @var iRequestHandler
 	 */
-	protected static $_handler = NULL;
+	protected static $_handler;
+	/**
+	 * Objet de gestion original de la requête (en cas de redirection interne)
+	 * @var iRequestHandler
+	 */
+	protected static $_originalHandler;
 	/**
 	 * Gestionnaire de réponse
 	 * @var iResponse
@@ -52,7 +52,7 @@ class Request extends StaticClass {
 	 * Nom des headers à récupérer en plus de ceux commençant par http-
 	 * @var array
 	 */
-    protected static $_additionalHeaders = array('content-type', 'content-length', 'php-auth-user', 'php-auth-pw', 'auth-type', 'x-requested-with');
+	protected static $_additionalHeaders = array('content-type', 'x-requested-with', 'server-protocol', 'request-method');
 	/**
 	 * Le protocole HTTP en cours
 	 * @var string
@@ -62,7 +62,7 @@ class Request extends StaticClass {
 	 * Type de contenu attendu
 	 * @var string
 	 */
-    protected static $_contentType;
+	protected static $_contentType;
 	/**
 	 * Corps de la requête courante (si défini)
 	 * @var string
@@ -73,6 +73,11 @@ class Request extends StaticClass {
 	 * @var array
 	 */
 	protected static $_put;
+	/**
+	 * Indique si la requête a été redirigée
+	 * @var boolean
+	 */
+	protected static $_internalRedirected = false;
 	
 	/**
 	 * Mode de requête CLI
@@ -117,6 +122,7 @@ class Request extends StaticClass {
 	
 	/**
 	 * Initialise la classe
+	 *
 	 * @return void
 	 */
 	public static function initClass()
@@ -130,6 +136,7 @@ class Request extends StaticClass {
 	
 	/**
 	 * Renvoie les headers de la requête
+	 *
 	 * @return array les headers
 	 */
 	public static function getHeaders()
@@ -155,47 +162,41 @@ class Request extends StaticClass {
 	
 	/**
 	 * Renvoie la valeur d'un header de la requête
+	 *
 	 * @param string $name le nom du header
+	 * @param mixed $default la valeur par défaut à renvoyer si le header n'est pas défini (facultatif, défaut : NULL)
+	 * @param boolean $ignoreEmtpy indique s'il faut considérer un header vide comme non défini (facultatif, défaut : true)
 	 * @return string la valeur trouvée, ou NULL si non définie
 	 */
-	public static function getHeader($name)
+	public static function getHeader($name, $default = NULL, $ignoreEmtpy = true)
 	{
 		$headers = self::getHeaders();
 		$name = self::_convertHeaderName($name);
 		
-		return isset($headers[$name]) ? $headers[$name] : NULL;
+		return (isset($headers[$name]) and (!empty($headers[$name]) or !$ignoreEmtpy)) ? $headers[$name] : $default;
 	}
 
-    /**
-     * Formatte un nom de header
-     * @param string $name le nom du header
-     * @return string le nom formatté
-     */
-    protected static function _convertHeaderName($name)
-    {
-        return str_replace('_', '-', strtolower($name));
-    }
+	/**
+	 * Formatte un nom de header
+	 *
+	 * @param string $name le nom du header
+	 * @return string le nom formatté
+	 */
+	protected static function _convertHeaderName($name)
+	{
+		return str_replace('_', '-', strtolower($name));
+	}
 
 	/**
 	 * Renvoie le protocole en cours
+	 *
 	 * @return string le protocole
 	 */
 	public static function getProtocol()
 	{
 		if (!isset(self::$_protocol))
 		{
-			if (isset($_SERVER['SERVER_PROTOCOL']))
-			{
-				self::$_protocol = $_SERVER['SERVER_PROTOCOL'];
-				if (self::$_protocol != 'HTTP/1.1' and self::$_protocol != 'HTTP/1.0')
-				{
-					self::$_protocol = 'HTTP/1.0';
-				}
-			}
-			else
-			{
-				self::$_protocol = 'HTTP/1.0';
-			}
+			self::$_protocol = self::getHeader('Server-Protocol', 'HTTP/1.1');
 		}
 
 		return self::$_protocol;
@@ -203,14 +204,14 @@ class Request extends StaticClass {
 
 	/**
 	 * Renvoie le type de contenu attendu
+	 *
 	 * @return string le type (par défaut : application/x-www-form-urlencoded)
 	 */
 	public static function getContentType()
 	{
 		if (!isset(self::$_contentType))
 		{
-			$header = self::getHeader('Content-type');
-			self::$_contentType = is_null($header) ? 'application/x-www-form-urlencoded' : $header;
+			self::$_contentType = self::getHeader('Content-Type', 'application/x-www-form-urlencoded');
 		}
 		
 		return self::$_contentType;
@@ -218,6 +219,7 @@ class Request extends StaticClass {
 	
 	/**
 	 * Renvoie le corps de la requête
+	 *
 	 * @return string le corps de la requête, ou une chaîne vide si non défini
 	 */
 	public static function getBody()
@@ -232,31 +234,38 @@ class Request extends StaticClass {
 	
 	/**
 	 * Définit le parseur de requête
-	 * @param iRequestParser $parser un objet implémentant l'interface iRequestParser
+	 *
+	 * @param string $parser le nom d'une classe implémentant l'interface iRequestParser
 	 */
-	public static function setParser($parser)
+	public static function addParser($parser)
 	{
-		self::$_parser = $parser;
+		self::$_parsers[] = $parser;
 	}
 	
 	/**
-	 * Crée le parseur de requête si non défini et le renvoie
-	 * @param iRequestParser le parseur
+	 * Renvoie le parser de la requête
+	 *
+	 * @param iRequestParser le parseur, ou NULL si aucun ou pas encore déterminé
 	 */
 	public static function getParser()
 	{
-		// Par défaut
-		if (is_null(self::$_parser))
-		{
-			self::$_parser = self::isCLI() ? new CliRequestParser() : new HttpRequestParser();
-		}
-		
-		return self::$_parser;
+		return isset(self::$_handler) ? self::$_handler->getRoute()->getParser() : NULL;
+	}
+	
+	/**
+	 * Renvoie le parser original de la requête
+	 *
+	 * @param iRequestParser le parseur, ou NULL si aucun ou pas encore déterminé
+	 */
+	public static function getOriginalParser()
+	{
+		return isset(self::$_originalHandler) ? self::$_originalHandler->getRoute()->getParser() : NULL;
 	}
 	
 	/**
 	 * Ajout d'une route de requête
-	 * @param iRoute $route un objet implémentant l'interface iRoute
+	 *
+	 * @param string $route le nom d'une classe implémentant l'interface iRequestRoute
 	 */
 	public static function addRoute($route)
 	{
@@ -264,26 +273,29 @@ class Request extends StaticClass {
 	}
 
 	/**
-	 * Indique si la route finale de la requête est définie
-	 * @return boolean une confirmation
-	 */
-	public static function hasActiveRoute()
-	{
-		return !is_null(self::$_route);
-	}
-
-	/**
-	 * Renvoie la route finale de la requête
-	 * @return iRoute la route si définie, ou NULL si aucun ou pas encore déterminé
+	 * Renvoie la route de la requête
+	 *
+	 * @return iRequestRoute la route si définie, ou NULL si aucun ou pas encore déterminé
 	 */
 	public static function getRoute()
 	{
-		return self::$_route;
+		return isset(self::$_handler) ? self::$_handler->getRoute() : NULL;
+	}
+
+	/**
+	 * Renvoie la route originale de la requête
+	 *
+	 * @return iRequestRoute la route si définie, ou NULL si aucun ou pas encore déterminé
+	 */
+	public static function getOriginalRoute()
+	{
+		return isset(self::$_originalHandler) ? self::$_originalHandler->getRoute() : NULL;
 	}
 	
 	/**
 	 * Ajout d'un handler de requête
-	 * @param iHandler $handler un objet implémentant l'interface iHandler
+	 *
+	 * @param string $handler le nom d'une classe implémentant l'interface iRequestHandler
 	 */
 	public static function addHandler($handler)
 	{
@@ -291,25 +303,28 @@ class Request extends StaticClass {
 	}
 
 	/**
-	 * Indique si le handler final de la requête est défini
-	 * @return boolean une confirmation
-	 */
-	public static function hasActiveHandler()
-	{
-		return !is_null(self::$_handler);
-	}
-
-	/**
 	 * Renvoie le handler final de la requête
-	 * @return iHandler le handler si défini, ou NULL si aucun ou pas encore déterminé
+	 *
+	 * @return iRequestHandler le handler si défini, ou NULL si aucun ou pas encore déterminé
 	 */
 	public static function getHandler()
 	{
-		return self::$_handler;
+		return isset(self::$_handler) ? self::$_handler : NULL;
+	}
+
+	/**
+	 * Renvoie le handler original de la requête
+	 *
+	 * @return iRequestHandler le handler original si défini, ou NULL si aucun ou pas encore déterminé
+	 */
+	public static function getOriginalHandler()
+	{
+		return isset(self::$_originalHandler) ? self::$_originalHandler : NULL;
 	}
 	
 	/**
 	 * Définit le gestionnaire de réponse
+	 *
 	 * @param iResponse $response un objet implémentant l'interface iResponse
 	 */
 	public static function setResponse($response)
@@ -319,6 +334,7 @@ class Request extends StaticClass {
 	
 	/**
 	 * Crée le gestionnaire de réponse si non défini et le renvoie
+	 *
 	 * @param iResponse le gestionnaire de réponse
 	 */
 	public static function getResponse()
@@ -333,66 +349,35 @@ class Request extends StaticClass {
 	}
 	
 	/**
-	 * Exécute la requête
-	 * @return void
+	 * Récupère le premier objet d'analyse de requête compatible avec la requête en cours
+	 *
+	 * @param string $request la requête à analyser, ou NULL pour utiliser l'environnement
+	 * @return iRequestParser|boolean l'objet d'analyse trouvé, ou false si aucun
 	 */
-	public static function run()
+	public static function getRequestParser($request = NULL)
 	{
-		// Préparation
-		$parser = self::getParser();
-		$response = self::getResponse();
-		
-		// Analyse de la requête
-		if (!$parser->run())
+		foreach (self::$_parsers as $class)
 		{
-			self::abort(400);	// Bad Request
+			if ($parser = call_user_func(array($class, 'match'), $request))
+			{
+				return $parser;
+			}
 		}
 		
-		// Parcours des routes disponibles
-		self::$_route = self::getParserRoute($parser);
-		
-		// Si aucune route trouvée
-		if (is_null(self::$_route))
-		{
-			self::abort(404);	// Not Found
-		}
-		
-		// Parcours des handlers disponibles
-		self::$_handler = self::getRouteHandler(self::$_route);
-		
-		// Si aucun handler trouvé
-		if (is_null(self::$_handler))
-		{
-			self::abort(501);	// Not Implemented
-		}
-		
-		// Préparation
-		$inited = self::$_route->init();
-		if ($inited !== true)
-		{
-			self::abort($inited);
-		}
-		
-		// Exécution
-		$response->addContent(self::$_handler->exec(self::$_route));
-		
-		// Cloture
-		self::$_route->close();
-		
-		// Sortie
-		self::getResponse()->send();
+		return false;
 	}
 	
 	/**
 	 * Récupère la première route compatible avec le parser parmis celles disponibles
+	 *
 	 * @param iRequestParser $parser le parser
-	 * @return iRoute la route trouvée, ou NULL si aucune
+	 * @return iRequestRoute|boolean la route trouvée, ou false si aucune
 	 */
 	public static function getParserRoute($parser)
 	{
-		foreach (self::$_routes as $route)
+		foreach (self::$_routes as $class)
 		{
-			if ($route->match($parser))
+			if ($route = call_user_func(array($class, 'match'), $parser))
 			{
 				return $route;
 			}
@@ -403,14 +388,15 @@ class Request extends StaticClass {
 	
 	/**
 	 * Récupère le première handler compatible avec la route parmis ceux disponibles
-	 * @param iRoute $route la route
-	 * @return iHandler le handler trouvé, ou NULL si aucun
+	 *
+	 * @param iRequestRoute $route la route
+	 * @return iRequestHandler|boolean le handler trouvé, ou false si aucun
 	 */
 	public static function getRouteHandler($route)
 	{
-		foreach (self::$_handlers as $handler)
+		foreach (self::$_handlers as $class)
 		{
-			if ($handler->handles(self::$_route))
+			if ($handler = call_user_func(array($class, 'handles'), $route))
 			{
 				return $handler;
 			}
@@ -420,7 +406,73 @@ class Request extends StaticClass {
 	}
 	
 	/**
-	 * Interrompt la requête en cours et envoie l'erreur correspondante
+	 * Exécute la requête
+	 *
+	 * @return void
+	 */
+	public static function run()
+	{
+		// Actions
+		Env::callActions('start');
+		
+		// Préparation
+		$response = self::getResponse();
+		
+		// Analyse de la requête
+		$parser = self::getRequestParser();
+		
+		// Si aucun parser compatible trouvé
+		if (!$parser)
+		{
+			self::abort(400);	// Bad Request
+		}
+		
+		// Parcours des routes disponibles
+		$route = self::getParserRoute($parser);
+		
+		// Si aucune route trouvée
+		if (!$parser)
+		{
+			self::abort(404);	// Not Found
+		}
+		
+		// Parcours des handlers disponibles
+		self::$_handler = self::getRouteHandler($route);
+		
+		// Si aucun handler trouvé
+		if (!self::$_handler)
+		{
+			self::abort(501);	// Not Implemented
+		}
+		self::$_originalHandler = self::$_handler;
+		
+		// Préparation
+		$inited = $route->init();
+		if ($inited !== true)
+		{
+			self::abort($inited);
+		}
+		
+		// Exécution
+		self::$_handler->begin();
+		$response->setContent(self::$_handler->exec());
+		self::$_handler->end();
+		
+		// Cloture
+		$route->close();
+		
+		// Actions
+		Env::callActions('request.end');
+		
+		// Terminaison
+		self::stop();
+	}
+	
+	/**
+	 * Interrompt la requête en cours et envoie l'erreur correspondante. Si la requête est redirigée en interne (par exemple pour afficher
+	 * une page d'erreur personnalisée), il est possible d'annuler l'interruption de requête depuis la ressource redirigée
+	 * en émettant une HandledErrorException.
+	 *
 	 * @param int $error le code de l'erreur à l'origine de l'interruption (facultatif, défaut : 0)
 	 * @param string $message un message additonnel (facultatif, défaut : '')
 	 * @param mixed $data toute données additonnelle (facultatif, défaut : NULL)
@@ -428,31 +480,72 @@ class Request extends StaticClass {
 	 */
 	public static function abort($error = 0, $message = '', $data = NULL)
 	{
+		// Log
+		Log::info('Interruption de requête, erreur '.$error.((strlen($message) > 0) ? ' - '.$message : ''));
+		
 		// Fin du script
-		self::getResponse()->error($error, $message, $data);
+		try
+		{
+			self::getResponse()->error($error, $message, $data);
+		}
+		catch (HandledErrorException $ex)
+		{
+			// L'erreur a été gérée, on retourne à la requête principale
+			if (self::isInternalRedirected())
+			{
+				self::$_handler = self::$_originalHandler;
+				self::$_internalRedirected = false;
+			}
+			
+			// Retour au processus normal
+			return;
+		}
+		catch (SCException $ex) { }
+		
+		// Terminaison
+		self::stop();
+	}
+	
+	/**
+	 * Termine la requête
+	 *
+	 * @return void
+	 */
+	public static function stop()
+	{
+		// Sortie
+		self::getResponse()->end();
+		
+		// Actions
+		Env::callActions('request.stop');
+		
 		exit();
 	}
 	
 	/**
-	 * Tente d'effectuer une redirection interne de la requête, si gérée par l'environnement de routage
-	 * @param string $request la nouvelle requête à prendre en compte (facultatif, défaut : NULL)
+	 * Tente d'effectuer une redirection interne de la requête et de l'exécuter, si géré par l'environnement de routage
+	 *
+	 * @param string $request l'url de la ressource de redirection
 	 * @return boolean une confirmation que la redirection a pu être effectuée
 	 */
-	public static function internalRedirect($request = NULL)
+	public static function internalRedirect($request)
 	{
-		// Test de validité
-		$parser = self::getParser();
-		if (!$parser->redirect($request))
-		{
-			return false;
-		}
+		// Log
+		Log::info('Tentative de redirection interne vers \''.$request.'\'');
 		
 		// Test de la validité de l'environnement
-		if ($route = self::getParserRoute($parser) and $handler = self::getRouteHandler($route) and $route->redirect($parser))
+		if ($parser = self::getRequestParser($request) and $route = self::getParserRoute($parser) and $handler = self::getRouteHandler($route) and $route->init())
 		{
-			self::$_route = $route;
+			// Log
+			Log::info('Redirection interne valide');
+			
+			// Indicateur
+			self::$_internalRedirected = true;
+			
 			self::$_handler = $handler;
-			self::getResponse()->addContent($handler->exec($route));
+			self::$_handler->begin();
+			self::getResponse()->setContent(self::$_handler->exec());
+			self::$_handler->end();
 			return true;
 		}
 		
@@ -460,9 +553,19 @@ class Request extends StaticClass {
 	}
 	
 	/**
+	 * Indique si la requête a été redirigée en interne
+	 * @return boolean une confirmation
+	 */
+	public static function isInternalRedirected()
+	{
+		return self::$_internalRedirected;
+	}
+	
+	/**
 	 * Vérification de la présence d'une variable dans les données GET/POST
+	 *
 	 * @param string $var Le nom de la variable à chercher
-	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true) 
+	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true)
 	 * @return boolean Confirmation ou non de la présence de la variable
 	 */
 	public static function issetParam($var, $ignoreEmpty = true)
@@ -486,8 +589,9 @@ class Request extends StaticClass {
 	
 	/**
 	 * Vérification de la présence d'une variable dans les données GET
+	 *
 	 * @param string $var Le nom de la variable à chercher
-	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true) 
+	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true)
 	 * @return boolean Confirmation ou non de la présence de la variable
 	 */
 	public static function issetGET($var, $ignoreEmpty = true)
@@ -505,8 +609,9 @@ class Request extends StaticClass {
 	
 	/**
 	 * Vérification de la présence d'une variable dans les données POST
+	 *
 	 * @param string $var Le nom de la variable à chercher
-	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true) 
+	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true)
 	 * @return boolean Confirmation ou non de la présence de la variable
 	 */
 	public static function issetPOST($var, $ignoreEmpty = true)
@@ -524,8 +629,9 @@ class Request extends StaticClass {
 	
 	/**
 	 * Vérification de la présence d'une variable dans les données PUT
+	 *
 	 * @param string $var Le nom de la variable à chercher
-	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true) 
+	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true)
 	 * @return boolean Confirmation ou non de la présence de la variable
 	 */
 	public static function issetPUT($var, $ignoreEmpty = true)
@@ -546,8 +652,10 @@ class Request extends StaticClass {
 	/**
 	 * Recherche dans les données GET et POST une variable et renvoie sa valeur si elle existe, sinon renvoie
 	 * $defaut. Il est possible d'ignorer les variables vides (chaînes vides).
+	 *
 	 * @param string|boolean $var Le nom de la variable à chercher, ou false pour récupérer un tableau
 	 * contenant toutes les variables de GET et POST (optionnel - défaut : false)
+	 *
 	 * @param mixed $default La valeur par défaut à renvoyer (optionnel - défaut : NULL)
 	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true)
 	 * @return mixed Renvoi la valeur de la variable si définie, ou $default
@@ -582,8 +690,10 @@ class Request extends StaticClass {
 	/**
 	 * Recherche dans les données GET une variable et renvoie sa valeur si elle existe, sinon renvoie
 	 * $defaut. Il est possible d'ignorer les variables vides (chaînes vides).
+	 *
 	 * @param string|boolean $var Le nom de la variable à chercher, ou false pour récupérer un tableau
 	 * contenant toutes les variables de GET (optionnel - défaut : false)
+	 *
 	 * @param mixed $default La valeur par défaut à renvoyer (optionnel - défaut : NULL)
 	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true)
 	 * @return mixed Renvoi la valeur de la variable si définie, ou $default
@@ -612,8 +722,10 @@ class Request extends StaticClass {
 	/**
 	 * Recherche dans les données POST une variable et renvoie sa valeur si elle existe, sinon renvoie
 	 * $defaut. Il est possible d'ignorer les variables vides (chaînes vides).
+	 *
 	 * @param string|boolean $var Le nom de la variable à chercher, ou false pour récupérer un tableau
 	 * contenant toutes les variables de POST (optionnel - défaut : false)
+	 *
 	 * @param mixed $default La valeur par défaut à renvoyer (optionnel - défaut : NULL)
 	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true)
 	 * @return mixed Renvoi la valeur de la variable si définie, ou $default
@@ -642,8 +754,10 @@ class Request extends StaticClass {
 	/**
 	 * Recherche dans les données PUT une variable et renvoie sa valeur si elle existe, sinon renvoie
 	 * $defaut. Il est possible d'ignorer les variables vides (chaînes vides).
+	 *
 	 * @param string|boolean $var Le nom de la variable à chercher, ou false pour récupérer un tableau
 	 * contenant toutes les variables de PUT (optionnel - défaut : false)
+	 *
 	 * @param mixed $default La valeur par défaut à renvoyer (optionnel - défaut : NULL)
 	 * @param boolean $ignoreEmpty Indique si il faut ou non ignorer les variables vides (optionnel - défaut : true)
 	 * @return mixed Renvoi la valeur de la variable si définie, ou $default
@@ -673,6 +787,7 @@ class Request extends StaticClass {
 	
 	/**
 	 * Efface une variable en GET et POST
+	 *
 	 * @param string|boolean $var le nom de la variable à effacer, ou false pour vider GET ET POST
 	 * @return void
 	 */
@@ -709,10 +824,14 @@ class Request extends StaticClass {
 				unset($_REQUEST[$var]);
 			}
 		}
+		
+		// Actions
+		Env::callActions('request.clearparam');
 	}
 	
 	/**
 	 * Efface une variable en GET
+	 *
 	 * @param string $var le nom de la variable à effacer, ou false pour vider GET
 	 * @return void
 	 */
@@ -755,10 +874,14 @@ class Request extends StaticClass {
 				unset($_REQUEST[$var]);
 			}
 		}
+		
+		// Actions
+		Env::callActions('request.clearget');
 	}
 	
 	/**
 	 * Efface une variable en POST
+	 *
 	 * @param string $var le nom de la variable à effacer, ou false pour vider POST
 	 * @return void
 	 */
@@ -801,10 +924,14 @@ class Request extends StaticClass {
 				unset($_REQUEST[$var]);
 			}
 		}
+		
+		// Actions
+		Env::callActions('request.clearpost');
 	}
 	
 	/**
 	 * Efface une variable en PUT
+	 *
 	 * @param string $var le nom de la variable à effacer, ou false pour vider PUT
 	 * @return void
 	 */
@@ -846,10 +973,14 @@ class Request extends StaticClass {
 				unset($_REQUEST[$var]);
 			}
 		}
+		
+		// Actions
+		Env::callActions('request.clearput');
 	}
 	
 	/**
 	 * Récupère les données de requête PUT
+	 *
 	 * @return array les données
 	 */
 	protected static function _getPut()
@@ -868,11 +999,11 @@ class Request extends StaticClass {
 					// Décodage
 					if (function_exists('mb_parse_str'))
 					{
-						mb_parse_str($input, self::$_put);
+						mb_parse_str($body, self::$_put);
 					}
 					else
 					{
-						parse_str($input, self::$_put);
+						parse_str($body, self::$_put);
 					}
 					
 					// Configuration
@@ -889,8 +1020,10 @@ class Request extends StaticClass {
 	
 	/**
 	 * Renvoie la chaîne de paramètres GET assemblée
-	 * @param array|string $params une chaîne de paramètres ou un tableau de paramètres additionnels 
+	 *
+	 * @param array|string $params une chaîne de paramètres ou un tableau de paramètres additionnels
 	 * (sous la forme clé => valeur) pour compléter ou modifier ceux existant (facultatif, défaut : array())
+	 *
 	 * @return string la chaîne de paramètres, avec le ? initial si nécessaire
 	 */
 	public static function getQueryString($params = array())
@@ -909,6 +1042,7 @@ class Request extends StaticClass {
 	
 	/**
 	 * Détermine et renvoie le mode de requête en cours selon les paramètres d'environnement
+	 *
 	 * @return int la constante correspondant au mode en cours :
 	 * 	 - Request::MODE_CLI : mode autonome de php
 	 * 	 - Request::MODE_WEB : mode http standard (module Apache)
@@ -924,7 +1058,7 @@ class Request extends StaticClass {
 			{
 				self::$_mode = self::MODE_CLI;
 			}
-			elseif (isset($_SERVER['HTTP_X_REQUESTED_WITH']) and strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')
+			elseif (strtolower(self::getHeader('x-requested-with')) == 'xmlhttprequest')
 			{
 				self::$_mode = self::MODE_AJAX;
 			}
@@ -934,12 +1068,12 @@ class Request extends StaticClass {
 			}
 		}
 		
-		// Renvoi
 		return self::$_mode;
 	}
 	
 	/**
 	 * Indique si une requête est de type ligne de commande
+	 *
 	 * @return boolean une confirmation
 	 */
 	public static function isCLI()
@@ -950,6 +1084,7 @@ class Request extends StaticClass {
 	
 	/**
 	 * Indique si une requête est de type AJAX
+	 *
 	 * @return boolean une confirmation
 	 */
 	public static function isAjax()
@@ -960,6 +1095,7 @@ class Request extends StaticClass {
 	
 	/**
 	 * Indique si une requête est de type Web (standard)
+	 *
 	 * @return boolean une confirmation
 	 */
 	public static function isWeb()
@@ -970,6 +1106,7 @@ class Request extends StaticClass {
 	
 	/**
 	 * Renvoie la méthode de requête courante
+	 *
 	 * @return string|boolean false si non défini, ou la constante correspondant à la méthode en cours :
 	 * 	 - Request::METHOD_HEAD
 	 * 	 - Request::METHOD_GET
@@ -981,7 +1118,7 @@ class Request extends StaticClass {
 	{
 		if (!isset(self::$_mode))
 		{
-			self::$_method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : false;
+			self::$_method = self::getHeader('request-method', false);
 		}
 		
 		return self::$_method;
@@ -989,6 +1126,7 @@ class Request extends StaticClass {
 	
 	/**
 	 * Indique si une requête utilise la méthode GET
+	 *
 	 * @return boolean une confirmation
 	 */
 	public static function isGet()
@@ -998,6 +1136,7 @@ class Request extends StaticClass {
 
 	/**
 	 * Indique si une requête utilise la méthode POST
+	 *
 	 * @return boolean une confirmation
 	 */
 	public static function isPost()
@@ -1007,6 +1146,7 @@ class Request extends StaticClass {
 
 	/**
 	 * Indique si une requête utilise la méthode PUT
+	 *
 	 * @return boolean une confirmation
 	 */
 	public static function isPut()
@@ -1016,6 +1156,7 @@ class Request extends StaticClass {
 
 	/**
 	 * Indique si une requête utilise la méthode DELETE
+	 *
 	 * @return boolean une confirmation
 	 */
 	public static function isDelete()
@@ -1025,6 +1166,7 @@ class Request extends StaticClass {
 
 	/**
 	 * Indique si une requête utilise la méthode HEAD
+	 *
 	 * @return boolean une confirmation
 	 */
 	public static function isHead()
@@ -1032,3 +1174,8 @@ class Request extends StaticClass {
 		return (self::getMethod() === self::METHOD_HEAD);
 	}
 }
+
+/**
+ * Classe d'exception pour indiquer un affichage d'erreur qui n'est plus nécessaire
+ */
+class HandledErrorException extends SCException {}

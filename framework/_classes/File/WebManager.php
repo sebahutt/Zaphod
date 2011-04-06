@@ -5,6 +5,7 @@
 class WebManager extends BaseManager implements FileManager {
 	/**
 	 * Return a string depending on file manager type ('local', 'ftp', 'web'...)
+	 * 
 	 * @return string the file manager type
 	 */
 	public function getType()
@@ -14,6 +15,7 @@ class WebManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Open a new cURL session
+	 * 
 	 * @param string $url the target url
 	 * @return resource|boolean the cURL handler, or false if not available
 	 */
@@ -37,6 +39,7 @@ class WebManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Check if a path really exists
+	 * 
 	 * @param string $path the path to test
 	 * @return boolean true if the path exists, else false
 	 */
@@ -72,6 +75,7 @@ class WebManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Tests if a path if a file
+	 * 
 	 * @param string $path the path to test
 	 * @return boolean if the path is a file, else false
 	 */
@@ -84,6 +88,7 @@ class WebManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Tests if a path if a folder
+	 * 
 	 * @param string $path the path to test
 	 * @return boolean if the path is a folder, else false
 	 */
@@ -94,6 +99,7 @@ class WebManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Get the contents of a file
+	 * 
 	 * @param string $path the path to read
 	 * @return string|boolean the file contents, or false if error
 	 */
@@ -138,6 +144,7 @@ class WebManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Put the contents of a file
+	 * 
 	 * @param string $path the path to use
 	 * @param string $content the content to write
 	 * @return void
@@ -145,11 +152,12 @@ class WebManager extends BaseManager implements FileManager {
 	 */
 	public function putFileContents($path, $content)
 	{
-		throw new SCException('Write not supported on url');
+		throw new SCException('Ecriture impossible sur une url');
 	}
 	
 	/**
 	 * Move an element to a new location within the same file manager
+	 * 
 	 * @param string $oldPath the original path
 	 * @param string $newPath the target path
 	 * @return void
@@ -157,22 +165,24 @@ class WebManager extends BaseManager implements FileManager {
 	 */
 	public function moveElement($oldPath, $newPath)
 	{
-		throw new SCException('Moving file not supported on url');
+		throw new SCException('Déplcament impossible sur une url');
 	}
 	
 	/**
 	 * Delete a file
+	 * 
 	 * @param string $path the path to delete
 	 * @return void
 	 * @throws SCException delete a file is not supproted by default on an url
 	 */
 	public function deleteFile($path)
 	{
-		throw new SCException('Delete not supported on url');
+		throw new SCException('Suppression impossible sur une url');
 	}
 	
 	/**
 	 * Change permissions
+	 * 
 	 * @param string $path the path to use
 	 * @param int $mode the mode to use, as an octal number
 	 * @return void
@@ -180,11 +190,12 @@ class WebManager extends BaseManager implements FileManager {
 	 */
 	public function chmod($path, $mode)
 	{
-		throw new SCException('Permissions not handled on HTTP');
+		throw new SCException('Pas de gestion des permissions en HTTP');
 	}
 	
 	/**
 	 * Create a folder
+	 * 
 	 * @param string $path the path to create
 	 * @param int $mode the mode to use, as an octal number
 	 * @param boolean $recursive true to create parent folders i f they don't exist
@@ -193,22 +204,24 @@ class WebManager extends BaseManager implements FileManager {
 	 */
 	public function createFolder($path, $mode = 0755, $recursive = true)
 	{
-		throw new SCException('Create folder not supported on url');
+		throw new SCException('Création de dossier impossible sur une url');
 	}
 	
 	/**
 	 * Delete a folder
+	 * 
 	 * @param string $path the path to delete
 	 * @return void
 	 * @throws SCException delete a folder is not supproted by default on an url
 	 */
 	public function deleteFolder($path)
 	{
-		throw new SCException('Delete not supported on url');
+		throw new SCException('Suppression impossible sur une url');
 	}
 	
 	/**
 	 * Get the size of a file
+	 * 
 	 * @param string $path the path to use
 	 * @return int size in bytes
 	 * @throws SCException if there are no available methods to get file size
@@ -245,12 +258,13 @@ class WebManager extends BaseManager implements FileManager {
 		}
 		else
 		{
-			throw new SCException('No methods available to get file size');
+			throw new SCException('Aucune méthode disponible pour déterminer le poids du fichier');
 		}
 	}
 	
 	/**
 	 * Get last modified time
+	 * 
 	 * @param string $path the path to use
 	 * @return int|boolean the last modified time as a Unix timestamp, or false if error
 	 * @throws SCException if there are no available methods to get file size
@@ -287,34 +301,37 @@ class WebManager extends BaseManager implements FileManager {
 		}
 		else
 		{
-			throw new SCException('No methods available to get file modification time');
+			throw new SCException('Aucune méthode disponible pour déterminer la date de modification du fichier');
 		}
 	}
 	
 	/**
 	 * Get the size of an image
+	 * 
 	 * @param string $path the path to use
 	 * @return void
 	 * @throws SCException unable to read image size on url (would have to download full file first)
 	 */
 	public function getImageSize($path)
 	{
-		throw new SCException('Image size reading not supported on url');
+		throw new SCException('Impossible d\'obtenir les dimensions de l\'image sur une url');
 	}
 	
 	/**
 	 * Get the elements in a folder
+	 * 
 	 * @param string $path the folder path
 	 * @return void
 	 * @throws SCException folder listing is not supproted by default on an url
 	 */
 	public function getPathChildren($path)
 	{
-		throw new SCException('Folder listing not supported on url');
+		throw new SCException('Listing de dossier impossible sur une url');
 	}
 	
 	/**
 	 * Get the mime type of a file
+	 * 
 	 * @param string $path the file path
 	 * @param string $default the default mime if it can't be detected
 	 * @return boolean false, mime type detection isn't available over url

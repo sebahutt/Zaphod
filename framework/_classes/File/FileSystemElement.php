@@ -58,21 +58,41 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Constructeur
+	 * 
 	 * @param string $path the object path
-	 * @param BaseManager $manager the server file manager (default : 'local')
+	 * @param BaseManager $manager le nom ou l'objet du gestionnaire de fichier, ou NULL pour détecter automatiquement
+	 * @throws SCException si le gestionnaire de fichier est impossible à détecter
 	 */
 	public function __construct($path, $manager = NULL)
 	{
 		// Nettoyage
 		$path = removeTrailingSlash(trim($path));
 		
+		// Détection automatique
+		if (is_string($manager))
+		{
+			$manager = FileServer::get($manager);
+		}
+		elseif (!is_object($manager))
+		{
+			if ($manager = FileServer::getPathServer($path))
+			{
+				$path = substr($path, strlen($manager->getLocalPath()));
+			}
+			else
+			{
+				throw new SCException('Le chemin du fichier ne correspond à aucun serveur de fichiers ('.$path.')');
+			}
+		}
+		
 		// Mémorisation
-		$this->_manager = is_null($manager) ? FileServer::get('local') : $manager;
+		$this->_manager = $manager;
 		$this->_path = $path;
 	}
 	
 	/**
 	 * Get object internal path (relative to its manager)
+	 * 
 	 * @return string the object path
 	 */
 	public function getPath()
@@ -82,6 +102,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get object file manager
+	 * 
 	 * @return BaseManager the file manager
 	 */
 	public function getManager()
@@ -91,6 +112,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Clear object cache data
+	 * 
 	 * @return void
 	 */
 	public function clearCache()
@@ -102,6 +124,7 @@ abstract class FileSystemElement {
 
 	/**
 	 * Check if the object really exists
+	 * 
 	 * @param boolean $create use true to create if not existing
 	 * @return boolean true if the object exists or was created, else false
 	 */
@@ -129,6 +152,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Check if the element is a file
+	 * 
 	 * @return boolean true if the element is a file, else false
 	 */
 	public function isFile()
@@ -138,6 +162,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Check if the element is a folder
+	 * 
 	 * @return boolean true if the element is a folder, else false
 	 */
 	public function isFolder()
@@ -147,6 +172,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Check whether the element is a hidden system element
+	 * 
 	 * @return boolean true if the element is hidden, else false
 	 */
 	public function isHidden()
@@ -182,6 +208,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Change permissions on the element
+	 * 
 	 * @param int $mode the mode to use, as an octal number
 	 * @param boolean $childrenMode the mode to apply to children, or false to ignore (folders only)
 	 * @return boolean true if the permissions were set, else false
@@ -205,6 +232,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get parent folder
+	 * 
 	 * @return Folder|boolean the parent folder, or false if the element is the root
 	 */
 	public function getFolder()
@@ -237,6 +265,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Full local path of the object (if available)
+	 * 
 	 * @return string|false the local path, or false if not available
 	 */
 	public function getLocalPath()
@@ -247,6 +276,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Full web path of the object (if available)
+	 * 
 	 * @return string|false the web path, or false if not available
 	 */
 	public function getWebPath()
@@ -257,6 +287,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get path informations - see pathinfo() for more details
+	 * 
 	 * @return array datas on the path : dirname, basename, extension, filename
 	 * @url http://www.php.net/manual/fr/function.pathinfo.php
 	 */
@@ -278,6 +309,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Update path informations - internal use only
+	 * 
 	 * @param array $pathInfo datas on the path : dirname, basename, extension, filename
 	 * @return void
 	 */
@@ -288,11 +320,13 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get image size
+	 * 
 	 * @return array an array with the following keys :
 	 * 	 - width
 	 * 	 - height
 	 * 	 - channels
 	 * 	 - bits
+	 * 
 	 * @see FileManager::getImageSize()
 	 */
 	protected function _getDimensions()
@@ -319,11 +353,13 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Update image size - internal use only
+	 * 
 	 * @param array $dimensions an array with the following keys :
 	 * 	 - width
 	 * 	 - height
 	 * 	 - channels
 	 * 	 - bits
+	 * 
 	 * @return void
 	 */
 	protected function _updateDimensions($dimensions)
@@ -333,6 +369,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get the folder part of the object path
+	 * 
 	 * @return string the folder path
 	 */
 	public function getDirname()
@@ -343,6 +380,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get the object name without extension
+	 * 
 	 * @return string the object name
 	 */
 	public function getFilename()
@@ -353,6 +391,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get the object name with extension (if defined)
+	 * 
 	 * @return string the object name
 	 */
 	public function getBasename()
@@ -363,6 +402,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get the file extension (if defined)
+	 * 
 	 * @return string the file extension, or NULL if none
 	 */
 	public function getExtension()
@@ -374,6 +414,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get file size
+	 * 
 	 * @return int the file size
 	 */
 	public function getSize()
@@ -398,6 +439,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get file size in a readable format (ko, mo...)
+	 * 
 	 * @return string the size
 	 */
 	public function getReadableSize()
@@ -407,6 +449,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get image width (if the object is an image)
+	 * 
 	 * @return int the width in pixels, or NULL
 	 */
 	public function getWidth()
@@ -417,6 +460,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get image height (if the object is an image)
+	 * 
 	 * @return int the height in pixels, or NULL
 	 */
 	public function getHeight()
@@ -428,6 +472,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get image number of channels (if the object is an image)
+	 * 
 	 * @return int the number of channels, or NULL
 	 */
 	public function getChannels()
@@ -438,6 +483,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Get image color depth by channel in bits (if the object is an image)
+	 * 
 	 * @return int the color depth by channel, or NULL
 	 */
 	public function getBits()
@@ -448,6 +494,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Copy an object to a new path or in a folder
+	 * 
 	 * @param string|Folder $target the target path (if in the same file manager) or a folder object
 	 * @param string|boolean $name name for the copy, or false to use the same same (only used if $folder is an object)
 	 * @param array $options an array of options with any of the following keys:
@@ -460,6 +507,7 @@ abstract class FileSystemElement {
 	 * 	- boolean eraseIfOlder (only if eraseIfExist is true) if true, erase the target file only if older. 
 	 * 			  If false, the target file will be erased. Caution: both file servers must be synchonized! (default: false)
 	 * 	- boolean deleteOriginal if true, delete the original file once copied (moves the file) (default: false)
+	 * 
 	 * @return File\Folder the new copied element
 	 * @throws SCException if the target is not a folder, if the target name already exists or if a copy error occurs
 	 */
@@ -474,7 +522,7 @@ abstract class FileSystemElement {
 		}
 		elseif (!$target->isFolder())
 		{
-			throw new SCException('The target element is not a folder : '.$target->getPath());
+			throw new SCException('L\'élément cible n\'est pas un dossier ('.$target->getPath().')');
 		}
 		
 		// Target name
@@ -500,7 +548,7 @@ abstract class FileSystemElement {
 		$exists = $target->getManager()->pathExists($path);
 		if ($exists and $options['warnIfExist'])
 		{
-			throw new SCException('Target name already exists : '.$path);
+			throw new SCException('Le nom de destination existe déjà ('.$path.')');
 		}
 		
 		// Init
@@ -533,7 +581,7 @@ abstract class FileSystemElement {
 				{
 					if (!$this->getManager()->moveElement($this->getPath(), $path))
 					{
-						throw new SCException('Error while moving '.$this->getPath().' to '.$path);
+						throw new SCException('Erreur lors du déplacement de '.$this->getPath().' vers '.$path);
 					}
 					$deleted = true;
 				}
@@ -541,7 +589,7 @@ abstract class FileSystemElement {
 				{
 					if ($target->getManager()->putFileContents($path, $this->getContents()) === false)
 					{
-						throw new SCException('Error while copying '.$this->getPath().' to '.$path);
+						throw new SCException('Erreur lors de la copie de '.$this->getPath().' vers '.$path);
 					}
 				}
 			}
@@ -585,6 +633,7 @@ abstract class FileSystemElement {
 	
 	/**
 	 * Move an object to a new path or in a folder - shorthand for copyTo()
+	 * 
 	 * @param string|Folder $target the target path (if in the same file manager) or a folder object
 	 * @param string|boolean $name name for the copy, or false to use the same same (only used if $folder is an object)
 	 * @param array $options an array of options (same as FileSystemElement::copyTo())

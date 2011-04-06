@@ -11,6 +11,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Return a string depending on file manager type ('local', 'ftp', 'web'...)
+	 * 
 	 * @return string the file manager type
 	 */
 	public function getType()
@@ -20,6 +21,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Get FTP stream (open the connection if needed)
+	 * 
 	 * @return resource the FTP stream
 	 * @throws SCException if config is invalid or if FTP stream can't be opened
 	 */
@@ -33,14 +35,14 @@ class FTPManager extends BaseManager implements FileManager {
 			$timeout = $this->_config->get('timeout', 90);
 			if (!$host or $host == '')
 			{
-				throw new SCException('Invalid FTP host');
+				throw new SCException('Hôte FTP invalide');
 			}
 			
 			// Connect
 			$stream = $this->_config->get('ssl', false) ? ftp_ssl_connect($host, $port, $timeout) : ftp_connect($host, $port, $timeout);
 			if (!$stream)
 			{
-				throw new SCException('Unable to open FTP connection');
+				throw new SCException('Impossible d\'ouvrir la connexion au serveur FTP');
 			}
 			
 			// Login
@@ -50,7 +52,7 @@ class FTPManager extends BaseManager implements FileManager {
 			}
 			else
 			{
-				throw new SCException('Wrong login or password');
+				throw new SCException('Mauvais utilisateur ou mot de passe FTP');
 			}
 			
 			// Passive mode
@@ -65,6 +67,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Check if a path really exists
+	 * 
 	 * @param string $path the path to test
 	 * @return boolean true if the path exists, else false
 	 */
@@ -76,6 +79,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Tests if a path if a file
+	 * 
 	 * @param string $path the path to test
 	 * @return boolean if the path is a file, else false
 	 */
@@ -86,6 +90,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Tests if a path if a folder
+	 * 
 	 * @param string $path the path to test
 	 * @return boolean if the path is a folder, else false
 	 */
@@ -96,6 +101,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Get the contents of a file
+	 * 
 	 * @param string $path the path to read
 	 * @return string|boolean the file contents, or false if error
 	 */
@@ -126,6 +132,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Put the contents of a file
+	 * 
 	 * @param string $path the path to use
 	 * @param string $content the content to write
 	 * @return int|boolean number of bytes written, or false if error
@@ -154,6 +161,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Move an element to a new location within the same file manager
+	 * 
 	 * @param string $oldPath the original path
 	 * @param string $newPath the target path
 	 * @return boolean true if the element was moved, else false
@@ -165,6 +173,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Delete a file
+	 * 
 	 * @param string $path the path to delete
 	 * @return boolean true if the file was deleted, else false
 	 */
@@ -175,6 +184,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Change permissions
+	 * 
 	 * @param string $path the path to use
 	 * @param int $mode the mode to use, as an octal number
 	 * @return boolean true if the permissions were set, else false
@@ -187,6 +197,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Create a folder
+	 * 
 	 * @param string $path the path to create
 	 * @param int $mode the mode to use, as an octal number
 	 * @param boolean $recursive true to create parent folders i f they don't exist
@@ -225,6 +236,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Delete a folder
+	 * 
 	 * @param string $path the path to delete
 	 * @return boolean true if the folder was deleted, else false
 	 */
@@ -235,6 +247,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Get the size of a file
+	 * 
 	 * @param string $path the path to use
 	 * @return int size in bytes
 	 */
@@ -245,6 +258,7 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Get last modified time
+	 * 
 	 * @param string $path the path to use
 	 * @return int|boolean the last modified time as a Unix timestamp, or false if error
 	 */
@@ -256,17 +270,19 @@ class FTPManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Get the size of an image
+	 * 
 	 * @param string $path the path to use
 	 * @return void
 	 * @throws SCException unable to read image size on FTP (would have to download full file first)
 	 */
 	public function getImageSize($path)
 	{
-		throw new SCException('Image size reading not supported');
+		throw new SCException('La détection des dimensions d\image n\'est pas supportée');
 	}
 	
 	/**
 	 * Get the elements in a folder
+	 * 
 	 * @param string $path the folder path
 	 * @return array the list of the elements, without '.' and '..'
 	 */

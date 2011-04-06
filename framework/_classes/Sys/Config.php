@@ -11,6 +11,7 @@ class Config extends DataHolder {
 	
 	/**
 	 * Constructeur de la classe de configuration
+	 * 
 	 * @param array $config tableau associatif des paramètres
 	 * @param Config configuration parente, ou NULL pour aucune (facultatif, défaut : NULL)
 	 * @throws SCException
@@ -23,7 +24,7 @@ class Config extends DataHolder {
 		}
 		catch (SCException $ex)
 		{
-			throw new SCException('Paramètres de configuration non valides', 2, $ex);
+			throw new SCException('Paramètres de configuration non valides');
 		}
 		
 		// Init
@@ -45,6 +46,7 @@ class Config extends DataHolder {
 	
 	/**
 	 * Obtention de la valeur d'un index
+	 * 
 	 * @param string|boolean $index le nom de l'index à renvoyer, ou true pour tout l'objet de données
 	 * @param mixed $defaut la valeur par défaut si l'index n'est pas défini (optionnel)
 	 * @return mixed Retourne la valeur du paramètre, ou la valeur par défaut si l'index n'est pas défini
@@ -70,6 +72,7 @@ class Config extends DataHolder {
 	
 	/**
 	 * Indique si le type de donnée fourni doit être converti
+	 * 
 	 * @return boolean une confirmation
 	 */
 	protected function _isConfigData($data)
@@ -79,6 +82,7 @@ class Config extends DataHolder {
 	
 	/**
 	 * Définition d'un index
+	 * 
 	 * @param string $param le nom de l'index à modifier
 	 * @param mixed $value la valeur à affecter
 	 * @return void

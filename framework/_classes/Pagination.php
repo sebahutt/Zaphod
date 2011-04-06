@@ -53,6 +53,7 @@ class Pagination
 	
 	/**
 	 * Constructeur de la classe
+	 * 
 	 * @param int|DatabaseResult $total le nombre total de lignes, ou un résultat de requête Select
 	 * @param int $range la longueur des pages, ou false pour tout (désactive la pagination)
 	 * @param int $page la page actuelle, commence à 0 (facultatif, défaut : 0)
@@ -109,6 +110,7 @@ class Pagination
 	
 	/**
 	 * Renvoie le code de la pagination
+	 * 
 	 * @return string le code HTML prêt pour affichage
 	 */
 	public function output()

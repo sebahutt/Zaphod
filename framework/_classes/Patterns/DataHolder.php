@@ -21,6 +21,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Constructeur de la classe de stockage
+	 * 
 	 * @param array|object $data les données à stocker
 	 * @throws SCException
 	 */
@@ -29,7 +30,7 @@ class DataHolder implements ArrayAccess, Iterator {
 		// Vérification
 		if (!is_array($data) and !is_object($data))
 		{
-			throw new SCException('Données non valides', 2, 'Le paramètre fourni doit être de type array ou object', $data);
+			throw new SCException('Données non valides, le paramètre fourni doit être de type array ou object');
 		}
 		
 		// Stockage
@@ -42,6 +43,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Charge les clés pour l'itérateur
+	 * 
 	 * @return void
 	 */
 	protected function _loadIteratorKeys()
@@ -51,6 +53,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Renvoie le tableau des données
+	 * 
 	 * @return array le tableau
 	 */
 	public function getArray()
@@ -60,6 +63,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Définit les valeurs par défaut
+	 * 
 	 * @param array $defaults les valeurs par défaut, sous forme de tableau associatif
 	 * @return void
 	 */
@@ -73,6 +77,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Indique si un index est défini
+	 * 
 	 * @param string $index l'index à tester
 	 * @return boolean une confirmation que l'index est défini ou non
 	 */
@@ -84,6 +89,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Obtention de la valeur d'un index
+	 * 
 	 * @param string|boolean $index le nom de l'index à renvoyer, ou true pour tout l'objet de données
 	 * @param mixed $defaut la valeur par défaut si l'index n'est pas défini (optionnel)
 	 * @return mixed Retourne la valeur du paramètre, ou la valeur par défaut si l'index n'est pas défini
@@ -101,6 +107,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Définition d'un index
+	 * 
 	 * @param string|array $index le nom de l'index à modifier, ou un tableau de valeurs avec les index en clés
 	 * @param mixed $value la valeur à affecter (ignorée si $index est un tableau) (facultatif, défaut : NULL)
 	 * @return void
@@ -127,6 +134,7 @@ class DataHolder implements ArrayAccess, Iterator {
 
 	/**
 	 * Implémentation Iterator - Reset de la position
+	 * 
 	 * @return void
 	 */
 	public function rewind()
@@ -136,6 +144,7 @@ class DataHolder implements ArrayAccess, Iterator {
 
 	/**
 	 * Implémentation Iterator - Valeur de l'index courant
+	 * 
 	 * @return mixed la valeur de l'index
 	 */
 	public function current()
@@ -145,6 +154,7 @@ class DataHolder implements ArrayAccess, Iterator {
 
 	/**
 	 * Implémentation Iterator - Obtention de l'index courant
+	 * 
 	 * @return int|string la clé courante
 	 */
 	public function key()
@@ -154,6 +164,7 @@ class DataHolder implements ArrayAccess, Iterator {
 
 	/**
 	 * Implémentation Iterator - Index suivant
+	 * 
 	 * @return void
 	 */
 	public function next()
@@ -163,6 +174,7 @@ class DataHolder implements ArrayAccess, Iterator {
 
 	/**
 	 * Implémentation Iterator - Test de la validité de l'index courant
+	 * 
 	 * @return void
 	 */
 	public function valid()
@@ -172,6 +184,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Implémentation ArrayAccess - Affectation d'une valeur
+	 * 
 	 * @param string $index L'index à définir
 	 * @param mixed $valeur La valeur à affecter
 	 * @return void
@@ -184,6 +197,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Implémentation ArrayAccess - Teste un index
+	 * 
 	 * @param string $index L'index à tester
 	 * @return boolean la confirmation si l'index existe
 	 */
@@ -195,6 +209,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Implémentation ArrayAccess - Efface un index
+	 * 
 	 * @param string $index L'index à effacer
 	 * @return void
 	 */
@@ -209,6 +224,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Implémentation ArrayAccess - Renvoie un index
+	 * 
 	 * @param string $index L'index à récupérer
 	 * @return mixed la valeur de l'index demandé, ou null s'il n'existe pas
 	 */
@@ -220,6 +236,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Méthode magique - lecture d'une valeur
+	 * 
 	 * @param string $index la clé de la valeur
 	 * @return mixed the value if defined, else NULL
 	 */
@@ -230,6 +247,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Méthode magique - teste si une clé est définie
+	 * 
 	 * @param string $index la clé à tester
 	 * @return boolean true if value is defined, else false
 	 */
@@ -240,6 +258,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Méthode magique - écriture d'une valeur
+	 * 
 	 * @param string $index la clé à modifier
 	 * @param mixed $value la nouvelle valeur
 	 * @return void
@@ -251,6 +270,7 @@ class DataHolder implements ArrayAccess, Iterator {
 	
 	/**
 	 * Méthode magique - suppression d'une clé
+	 * 
 	 * @param string $index la clé à supprimer
 	 * @return void
 	 */
