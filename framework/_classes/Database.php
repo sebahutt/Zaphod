@@ -224,6 +224,17 @@ class Database
 	}
 	
 	/**
+	 * Echappe une chaîne pour utilisation dans une requête
+	 *
+	 * @param string $string la chaîne à échapper
+	 * @return string la chaîne échappée
+	 */
+	public function quote($string)
+	{
+		return $this->_link->quote($string);
+	}
+	
+	/**
 	 * Renvoie l'objet de description de la table
 	 *
 	 * @param string $table le nom de la table
