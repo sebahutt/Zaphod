@@ -307,6 +307,8 @@ class Page extends BaseClass
 	public static function getByUrl($url)
 	{
 		$server = Database::get(self::$server);
+		$params = array();
+		$params[] = User::getCurrent()->statut;
 		
 		// Retrait des paramètres
 		$index = strpos($url, '?');
@@ -317,18 +319,33 @@ class Page extends BaseClass
 		
 		// Préparation de l'expression régulière
 		$url = removeSlashes($url);
-		$parts = explode('/', $url);
-		foreach ($parts as $index => $part)
-		{
-			$parts[$index] = '('.$part.'|:[[:alnum:]]+)';
+		if (strlen($url) > 0)
+			{
+			$parts = explode('/', $url);
+			foreach ($parts as $index => $part)
+			{
+				$parts[$index] = '('.$part.'|:[[:alnum:]]+)';
+			}
+			$regexp = implode('/', $parts);
+			
+			// Activation des urls uniquement constituées de paramètres
+			$requiredLength = Env::getConfig('sys')->get('allParamRewrite') ? '`url` REGEXP ?' : '(LENGTH(`url`) > 0 AND `url` REGEXP ?)';
+			$regexpReq = $requiredLength.' OR ';
+			
+			// Ajout aux paramètres
+			$params[] = $regexp;
 		}
-		$regexp = implode('/', $parts);
+		else
+		{
+			$regexpReq = '';
+		}
 		
-		// Activation des urls uniquement constituées de paramètres
-		$requiredLength = Env::getConfig('sys')->get('allParamRewrite') ? '`url` REGEXP ?' : '(LENGTH(`url`) > 0 AND `url` REGEXP ?)';
+		// Autres paramètres
+		$params[] = $url;
+		$params[] = $url;
 		
 		// Requête
-		$result = $server->query('SELECT * FROM `'.self::$table.'` A LEFT JOIN `'.self::$table.'_access` B ON A.`id_page`=B.`page` AND (B.`statut` IS NULL OR B.`statut`=?) WHERE '.$requiredLength.' OR `url`=? OR `file`=? ORDER BY LENGTH(`url`) DESC, `id_parent` DESC;', array(User::getCurrent()->statut, $regexp, $url, $url));
+		$result = $server->query('SELECT * FROM `'.self::$table.'` A LEFT JOIN `'.self::$table.'_access` B ON A.`id_page`=B.`page` AND (B.`statut` IS NULL OR B.`statut`=?) WHERE '.$regexpReq.'`url`=? OR `file`=? ORDER BY LENGTH(`url`) DESC, `id_parent` DESC;', $params);
 		
 		// Si trouvé
 		$nbPages = $result->count();

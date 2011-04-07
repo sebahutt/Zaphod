@@ -20,14 +20,22 @@ class PageUrl extends BaseClassWrapper {
 	 * @param Page $page l'objet page de rattachement
 	 * @param string $url l'url d'origine
 	 * @param array $params les paramètres chargés avec la requête originale (facultatif, défaut : array())
+	 * @throws SCException si les paramètres ne correspondent pas au pattern d'url de la page
 	 */
 	public function __construct($page, $url, $params = array())
 	{
 		parent::__construct($page);
 		
+		// Préparation des paramètres
+		$names = $this->_wrapped->getParamNames();
+		if (count($names) != count($params))
+		{
+			throw new SCException('Le nombre de paramètres n\'est pas valide (attendus : '.implode(', ', $names).')');
+		}
+		
 		// Mémorisation
 		$this->_url = $url;
-		$this->_params = array_combine($this->_wrapped->getParamNames(), $params);
+		$this->_params = (count($names) > 0) ? array_combine($this->_wrapped->getParamNames(), $params) : array();
 	}
 	
 	/**
