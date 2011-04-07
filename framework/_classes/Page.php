@@ -20,6 +20,11 @@ class Page extends BaseClass
 	 */
 	protected $_children;
 	/**
+	 * Liste des marqueurs de paramètres de l'url
+	 * @var array
+	 */
+	protected $_paramNames;
+	/**
 	 * Chemin du fichier contrôleur
 	 * @var string
 	 */
@@ -37,9 +42,8 @@ class Page extends BaseClass
 	
 	/**
 	 * Obtention de l'élément parent
-	 * 
+	 *
 	 * @return boolean|Page l'élément parent, ou false si non existant (racine)
-	 * @throws SCException
 	 */
 	public function getParent()
 	{
@@ -52,20 +56,7 @@ class Page extends BaseClass
 			// Si existant
 			if (!is_null($this->id_parent))
 			{
-				// Sélection
-				$result = Database::get(self::$server)->query('SELECT * FROM `'.self::$table.'` A LEFT JOIN `'.self::$table.'_access` B ON A.`id_page`=B.`page` AND (B.`statut` IS NULL OR B.`statut`=?) WHERE id_page=?;', array(User::getCurrent()->statut, $this->id_parent));
-				
-				// Si trouvé
-				if ($result->count() > 0)
-				{
-					// Composition
-					$this->_parent = Factory::getInstance('Page', $result[0]);
-				}
-				else
-				{
-					// Erreur
-					throw new SCException('Impossible de charger l\'élément parent de '.$this->id_page);
-				}
+				$this->_parent = self::getById($this->id_parent);
 			}
 		}
 		
@@ -74,7 +65,7 @@ class Page extends BaseClass
 	
 	/**
 	 * Obtention de l'élément racine
-	 * 
+	 *
 	 * @return Page l'élément parent (qui peut être l'élément courant)
 	 */
 	public function getRoot()
@@ -85,37 +76,131 @@ class Page extends BaseClass
 	
 	/**
 	 * URL de la page
-	 * 
+	 *
+	 * @param array $params les identifiants à passer dans l'url aux emplacements définis, sous la forme clé => valeur (facultatif, défaut : array())
 	 * @return string l'url de la page
+	 * @throws SCException si des paramètres sont attendus mais pas fournis
 	 */
-	public function getUrl()
+	public function getUrl($params = array())
 	{
-		return $this->get('url');
+		$url = $this->get('url');
+		$paramNames = $this->getParamNames();
+		
+		// Si aucun paramètre
+		if (count($params) === 0)
+		{
+			if (count($paramNames) > 0)
+			{
+				throw new SCException('Paramètres manquants pour l\'url (attendus : '.implode(', ', $paramNames).')');
+			}
+			return $url;
+		}
+		
+		// Remplacement
+		$parts = explode('/', $url);
+		foreach ($parts as $index => $part)
+		{
+			if (substr($part, 0, 1) === ':')
+			{
+				$param = substr($part, 1);
+				if (!isset($params[$param]))
+				{
+					throw new SCException('Paramètre manquant pour l\'url : '.$param);
+				}
+				$parts[$index] = $params[$param];
+			}
+		}
+		
+		return implode('/', $parts);
 	}
 	
 	/**
-	 * Contruit le lien de la page
-	 * 
-	 * @param string|boolean $title le titre (alt) à utiliser, ou false pour utiliser celui de la page
-	 * @return string le lien de la page
+	 * Extrait les paramètres nommés de l'url de la page
+	 *
+	 * @return array la liste des noms de paramètres
 	 */
-	public function getLink($title = false)
+	public function getParamNames()
 	{
-		$text = $this->get('title', 'Page');
-		if (!$title)
+		if (!isset($this->_paramNames))
 		{
-			$title = $text;
+			// Ajout du slash initial pour faciliter la détection
+			preg_match_all('/\/:([[:alnum:]]+)/', '/'.$this->get('url'), $matches);
+			$this->_paramNames = $matches[1];
 		}
 		
-		return '<a href="/'.$this->getUrl().'" title="'.htmlspecialchars($title).'">'.htmlspecialchars($text).'</a>';
+		return $this->_paramNames;
+	}
+	
+	/**
+	 * Indique si la page correspond à une url
+	 *
+	 * @param string $url l'url à tester
+	 * @return boolean une confirmation
+	 */
+	public function matchesUrl($url)
+	{
+		return self::urlMatchesPattern($url, $this->get('url'));
+	}
+	
+	/**
+	 * Extrait les paramètres passés dans l'url fournie en fonction des marqueurs de l'url interne
+	 *
+	 * @param string $url l'url à analyser
+	 * @return array un tableau associatif clé => valeur
+	 */
+	public function extractUrlParams($url)
+	{
+		$paramNames = $this->getParamNames();
+		
+		// Si aucun paramètre
+		if (count($paramNames) === 0)
+		{
+			return array();
+		}
+		
+		// Test
+		if (preg_match('/^'.str_replace('/', '\\/', preg_replace('/\/:[[:alnum:]]+/', '/([^/]+)', '/'.$this->get('url'))).'/', '/'.$url, $matches))
+		{
+			// Retrait de la chaîne globale des résultats
+			array_shift($matches);
+			
+			// Assemblage
+			return array_combine($paramNames, $matches);
+		}
+		else
+		{
+			return array();
+		}
+	}
+	
+	/**
+	 * Lien complet vers la page
+	 *
+	 * @param string $content le contenu du lien, ou NULL pour utiliser le titre de la page (facultatif, défaut : NULL)
+	 * @param string $title le contenu de l'attribut title, ou NULL pour utiliser le titre de la page (facultatif, défaut : NULL)
+	 * @param array $params les identifiants à passer dans l'url aux emplacements définis, sous la forme clé => valeur (facultatif, défaut : array())
+	 * @return string le lien complet
+	 */
+	public function getLink($content = NULL, $title = NULL, $params = array())
+	{
+		if (is_null($content))
+		{
+			$content = $this->get('title', '(sans titre)');
+		}
+		if (is_null($title))
+		{
+			$title = $this->get('title', '(sans titre)');
+		}
+		
+		return '<a href="/'.$this->getUrl($params).'" title="'.utf8entities($title).'">'.$content.'</a>';
 	}
 	
 	/**
 	 * Obtention des sous-éléments
-	 * 
+	 *
 	 * @param boolean $strict indique si on doit se limiter aux pages accessibles ou toutes les charger
 	 * 												(facultatif, défaut : true)
-	 * 
+	 *
 	 * @return array la liste des sous-éléments
 	 */
 	public function getChildren($strict = true)
@@ -132,7 +217,7 @@ class Page extends BaseClass
 	
 	/**
 	 * Teste si l'élément est accessible
-	 * 
+	 *
 	 * @return boolean la confirmation que l'élément est accessible ou non
 	 */
 	public function isAccessible()
@@ -142,7 +227,7 @@ class Page extends BaseClass
 	
 	/**
 	 * Renvoie le chemin du contrôleur
-	 * 
+	 *
 	 * @return string le chemin du contrôleur
 	 */
 	public function getControlerPath()
@@ -168,7 +253,7 @@ class Page extends BaseClass
 	
 	/**
 	 * Indique si la page a un contrôleur
-	 * 
+	 *
 	 * @return boolean une confirmation
 	 */
 	public function hasControler()
@@ -182,14 +267,47 @@ class Page extends BaseClass
 	}
 	
 	/**
+	 * Obtention d'une page par son id
+	 *
+	 * @param int $id l'id de la page
+	 * @return Page|false l'objet page, ou false si inexistant
+	 * @static
+	 */
+	public static function getById($id)
+	{
+		// Détection si en cache
+		$cached = Factory::getInstance('Page', $id);
+		if (!is_null($cached))
+		{
+			return $cached;
+		}
+		
+		// Sélection
+		$result = Database::get(self::$server)->query('SELECT * FROM `'.self::$table.'` A LEFT JOIN `'.self::$table.'_access` B ON A.`id_page`=B.`page` AND (B.`statut` IS NULL OR B.`statut`=?) WHERE id_page=?;', array(User::getCurrent()->statut, $id));
+		
+		// Si trouvé
+		if ($result->count() > 0)
+		{
+			// Composition
+			return Factory::getInstance('Page', $result[0]);
+		}
+		else
+		{
+			return false;
+		}
+	}
+	
+	/**
 	 * Obtention d'une page par son url
-	 * 
+	 *
 	 * @param string $url le nom du fichier
 	 * @return Page|boolean l'objet page, ou false si inexistant
 	 * @static
 	 */
 	public static function getByUrl($url)
 	{
+		$server = Database::get(self::$server);
+		
 		// Retrait des paramètres
 		$index = strpos($url, '?');
 		if ($index !== false)
@@ -197,19 +315,28 @@ class Page extends BaseClass
 			$url = substr($url, 0, $index);
 		}
 		
-		// Détection d'identifiants
-		$url = preg_replace('/\/[0-9]+\//', '/n/', $url);
+		// Préparation de l'expression régulière
+		$url = removeSlashes($url);
+		$parts = explode('/', $url);
+		foreach ($parts as $index => $part)
+		{
+			$parts[$index] = '('.$part.'|:[[:alnum:]]+)';
+		}
+		$regexp = implode('/', $parts);
 		
 		// Activation des urls uniquement constituées de paramètres
-		$requiredLength = Env::getConfig('sys')->get('allParamRewrite') ? 'INSTR(?, `url`)=1' : '(LENGTH(`url`) > 0 AND INSTR(?, `url`)=1)';
+		$requiredLength = Env::getConfig('sys')->get('allParamRewrite') ? '`url` REGEXP ?' : '(LENGTH(`url`) > 0 AND `url` REGEXP ?)';
 		
 		// Requête
-		$result = Database::get(self::$server)->query('SELECT * FROM `'.self::$table.'` A LEFT JOIN `'.self::$table.'_access` B ON A.`id_page`=B.`page` AND (B.`statut` IS NULL OR B.`statut`=?) WHERE '.$requiredLength.' OR `url`=? OR `file`=? ORDER BY LENGTH(`url`) DESC, `id_parent` DESC;', array(User::getCurrent()->statut, $url, $url, $url));
+		$result = $server->query('SELECT * FROM `'.self::$table.'` A LEFT JOIN `'.self::$table.'_access` B ON A.`id_page`=B.`page` AND (B.`statut` IS NULL OR B.`statut`=?) WHERE '.$requiredLength.' OR `url`=? OR `file`=? ORDER BY LENGTH(`url`) DESC, `id_parent` DESC;', array(User::getCurrent()->statut, $regexp, $url, $url));
 		
 		// Si trouvé
 		$nbPages = $result->count();
 		if ($nbPages > 0)
 		{
+			// Init
+			$params = false;
+			
 			// Si plusieurs pages, on recherche s'il y en a une spécifique au statut d'utilisateur
 			if ($nbPages > 1)
 			{
@@ -217,8 +344,9 @@ class Page extends BaseClass
 				$exact = false;
 				foreach ($result as $row)
 				{
-					// Si url exacte
-					if ($row['url'] == $url)
+					// Si url exacte ou correspondance des paramètres
+					$test = self::urlMatchesPattern($url, $row['url']);
+					if ($test !== false)
 					{
 						// Si statut particulier
 						if (!is_null($row['statut']))
@@ -232,6 +360,7 @@ class Page extends BaseClass
 							$page = $row;
 						}
 						
+						$params = $test;
 						$exact = true;
 					}
 					elseif (!$exact and $page)
@@ -240,11 +369,13 @@ class Page extends BaseClass
 						if (strlen($row['url']) > strlen($page['url']))
 						{
 							$page = $row;
+							$params = false;
 						}
 						// Si taille identique mais statut particulier
 						elseif (strlen($row['url']) == strlen($page['url']) and !is_null($row['statut']) and is_null($page['statut']))
 						{
 							$page = $row;
+							$params = false;
 						}
 					}
 					elseif (!$page)
@@ -257,10 +388,10 @@ class Page extends BaseClass
 			{
 				// Par défaut, première page
 				$page = $result[0];
-				
+				$params = self::urlMatchesPattern($url, $page['url']);
 			}
 			
-			return Factory::getInstance('Page', $page);
+			return new PageUrl(Factory::getInstance('Page', $page), $url, ($params === false) ? array() : $params);
 		}
 		
 		// Renvoi par défaut
@@ -268,8 +399,37 @@ class Page extends BaseClass
 	}
 	
 	/**
+	 * Indique si l'url correspond au pattern fourni
+	 *
+	 * @param string $url l'url à tester
+	 * @param string $pattern un modèle d'url avec d'éventuels paramètres commençant par ':'
+	 * @return array|boolean le tableau des paramètres trouvés, ou false si ne correspond pas
+	 */
+	public static function urlMatchesPattern($url, $pattern)
+	{
+		// Ajout du slash initial pour faciliter la détection
+		$pattern = '/'.removeSlashes($pattern);
+		$url = '/'.removeSlashes($url);
+		
+		// Si aucun paramètre
+		if (strpos($pattern, '/:') === false)
+		{
+			return ($url === $pattern) ? array() : false;
+		}
+		
+		// Analyse
+		if (preg_match('/^'.str_replace('/', '\\/', preg_replace('/\/:[[:alnum:]]+/', '/([^/]+)', $pattern)).'/', $url, $matches))
+		{
+			array_shift($matches);
+			return $matches;
+		}
+		
+		return false;
+	}
+	
+	/**
 	 * Obtention des sous-éléments d'un id
-	 * 
+	 *
 	 * @param int $id_parent l'id du parent
 	 * @param boolean $strict indique si on doit se limiter aux pages accessibles ou toutes les charger (facultatif, défaut : true)
 	 * @return array la liste des sous-éléments trouvés
@@ -314,7 +474,7 @@ class Page extends BaseClass
 	
 	/**
 	 * Renvoie la navigation principale
-	 * 
+	 *
 	 * @param boolean $strict indique si on doit se limiter aux pages accessibles ou toutes les charger (facultatif, défaut : true)
 	 * @return array la liste des rubriques principales
 	 * @static
@@ -322,5 +482,40 @@ class Page extends BaseClass
 	public static function getRootNav($strict = true)
 	{
 		return self::getIdChildren(NULL, $strict);
+	}
+	
+	/**
+	 * Renvoie le lien vers une page à partir de son id
+	 *
+	 * @param int $id l'identifiant de la page
+	 * @param array $params les identifiants à passer dans l'url aux emplacements définis, sous la forme clé => valeur (facultatif, défaut : array())
+	 * @return string le lien, ou # si la page n'existe pas
+	 */
+	public static function getIdUrl($id, $params = array())
+	{
+		if ($page = self::getById($id))
+		{
+			return $page->getUrl($params);
+		}
+		
+		return '#';
+	}
+	
+	/**
+	 * Lien complet vers une page à partir de son id
+	 *
+	 * @param string $content le contenu du lien, ou NULL pour utiliser le titre de la page (facultatif, défaut : NULL)
+	 * @param string $title le contenu de l'attribut title, ou NULL pour utiliser le titre de la page (facultatif, défaut : NULL)
+	 * @param array $params les identifiants à passer dans l'url aux emplacements définis, sous la forme clé => valeur (facultatif, défaut : array())
+	 * @return string le lien complet, ou '' si la page n'existe pas
+	 */
+	public static function getIdLink($content = NULL, $title = NULL, $params = array())
+	{
+		if ($page = self::getById($id))
+		{
+			return $page->getLink($content, $title, $params);
+		}
+		
+		return '';
 	}
 }
