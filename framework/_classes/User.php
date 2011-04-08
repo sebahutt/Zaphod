@@ -21,9 +21,9 @@ class User extends BaseClass
 	protected $_admin;
 	/**
 	 * Statut de l'utilisateur
-	 * @var Statut
+	 * @var Status
 	 */
-	protected $_statut;
+	protected $_status;
 	/**
 	 * Cache des options de l'utilisateur
 	 * @var array
@@ -76,7 +76,7 @@ class User extends BaseClass
 	 */
 	public function isAdmin()
 	{
-		return ($this->statut == 1);
+		return ($this->status == 1);
 	}
 	
 	/**
@@ -89,10 +89,23 @@ class User extends BaseClass
 		// Si pas encore chargé
 		if (!isset($this->_admin))
 		{
-			$this->_admin = is_null($this->admin) ? false : self::getUser($this->admin);
+			$this->_admin = is_null($this->admin) ? false : self::getById($this->admin);
 		}
 		
 		return $this->_admin;
+	}
+	
+	/**
+	 * Change le mot de passe de l'utilisateur
+	 *
+	 * @param string $pass le mot de passe non encodé
+	 * @return boolean une confirmation que le mot de passe est valide
+	 */
+	public function changePassword($pass)
+	{
+		$this->set('pass', md5($pass));
+		
+		return true;
 	}
 	
 	/**
@@ -123,17 +136,17 @@ class User extends BaseClass
 	/**
 	 * Renvoie l'objet statut de l'utilisateur
 	 *
-	 * @return Statut l'objet statut
+	 * @return Status l'objet statut
 	 */
-	public function getStatut()
+	public function getStatus()
 	{
 		// Si pas encore chargé
-		if (!isset($this->_statut))
+		if (!isset($this->_status))
 		{
-			$this->_statut = Statut::getStatut($this->statut);
+			$this->_status = Status::getStatus($this->status);
 		}
 		
-		return $this->_statut;
+		return $this->_status;
 	}
 	
 	/**
@@ -170,7 +183,15 @@ class User extends BaseClass
 		// Vérification du cache
 		$this->_loadOptionsCache();
 		
-		return isset($this->_options[$name]) ? $this->_options[$name]->getValue($default) : $default;
+		// Si utilisateur non enregistré
+		if ($this->isNew())
+		{
+			return isset($this->_options[$name]) ? $this->_options[$name] : $default;
+		}
+		else
+		{
+			return isset($this->_options[$name]) ? $this->_options[$name]->getValue($default) : $default;
+		}
 	}
 	
 	/**
@@ -185,23 +206,56 @@ class User extends BaseClass
 		// Vérification du cache
 		$this->_loadOptionsCache();
 		
-		if (!isset($this->_options[$name]))
+		// Si utilisateur non enregistré
+		if ($this->isNew())
 		{
-			// Création
-			$this->_options[$name] = Factory::getInstance('Option', array(
-				'user' => $this->get('id_user'),
-				'name' => $name
-			));
-			
-			// Mode d'enregistrement
-			if (!$this->isSavable())
+			$this->_options[$name] = $value;
+		}
+		else
+		{
+			if (!isset($this->_options[$name]))
 			{
-				$this->_options[$name]->disableSave();
+				// Création
+				$this->_options[$name] = Factory::getInstance('Option', array(
+					'user' => $this->get('id_user'),
+					'name' => $name
+				));
+				
+				// Mode d'enregistrement
+				if (!$this->isSavable())
+				{
+					$this->_options[$name]->disableSave();
+				}
+			}
+			
+			// Affectation
+			$this->_options[$name]->setValue($value);
+		}
+	}
+	
+	/**
+	 * Mise à jour des données de l'objet et enregistrement : si l'objet est nouveau (pas d'id), il est créé dans la base, sinon il est mis à jour.
+	 *
+	 * @param array $data les données à mettre à jour (facultatif, défaut : array())
+	 * @return int l'id de l'élément, ou false en cas d'erreur (ex : aucun champ défini)
+	 */
+	public function save($data = array())
+	{
+		$isNew = $this->isNew();
+		$result = parent::save($data);
+		
+		// Si valide, conversion des options
+		if ($result !== false and $isNew)
+		{
+			$options = $this->_options;
+			$this->_options = array();
+			foreach ($options as $name => $value)
+			{
+				$this->setOption($name, $value);
 			}
 		}
 		
-		// Affectation
-		$this->_options[$name]->setValue($value);
+		return $result;
 	}
 	
 	/**
@@ -219,7 +273,7 @@ class User extends BaseClass
 			if (isset($_SESSION['id_user']) and $_SESSION['id_user'] !== false)
 			{
 				// Chargement
-				self::$_current = self::getUser($_SESSION['id_user']);
+				self::$_current = self::getById($_SESSION['id_user']);
 			}
 			else
 			{
@@ -229,7 +283,7 @@ class User extends BaseClass
 					'prenom' => __('Utilisateur'),
 					'login' => '',
 					'pass' => '',
-					'statut' => NULL
+					'status' => NULL
 				));
 				self::$_current->_default = true;
 				
@@ -247,10 +301,10 @@ class User extends BaseClass
 	 * @param int $id_user l'identifiant de l'utilisateur
 	 * @return User|boolean l'utilisateur désiré, ou false si inexistant
 	 */
-	public static function getUser($id_user)
+	public static function getById($id_user)
 	{
 		// Requête
-		$result = Database::get(self::$server)->query('SELECT * FROM `users` A LEFT JOIN `statuts` B ON A.`statut`=B.`id_statut` WHERE A.`id_user`='.intval($id_user).';');
+		$result = Database::get(self::$server)->query('SELECT * FROM `users` A LEFT JOIN `status` B ON A.`status`=B.`id_status` WHERE A.`id_user`='.intval($id_user).';');
 	
 		// Si trouvé
 		if ($result->count() > 0)
@@ -267,7 +321,7 @@ class User extends BaseClass
 	 *
 	 * @param array $options les options de chargement (facultatif, défaut : array())
 	 * 					- actif : état actif des utilisateurs (0 ou 1) - défaut : NULL
-	 * 					- statut : les ou les statuts des utilisateurs - défaut : false
+	 * 					- status : les ou les statuts des utilisateurs - défaut : false
 	 *
 	 * @return array la liste des users
 	 */
@@ -275,28 +329,28 @@ class User extends BaseClass
 	{
 		// Options
 		$options['actif'] = 	isset($options['actif']) ? 		$options['actif'] : 				NULL;
-		$options['statut'] = 	isset($options['statut']) ? 	$options['statut'] : 				false;
-		$options['orderby'] = 	isset($options['orderby']) ? 	$options['orderby'] : 				'A.`prenom`, A.`nom`';
+		$options['status'] = 	isset($options['status']) ? 	$options['status'] : 				false;
+		$options['orderby'] = 	isset($options['orderby']) ? 	$options['orderby'] : 				'A.`first_name`, A.`last_name`';
 		
 		// Init
-		$request = 'SELECT * FROM `users` A INNER JOIN `statuts` B ON A.`statut`=B.`id_statut`';
+		$request = 'SELECT * FROM `users` A INNER JOIN `status` B ON A.`status`=B.`id_status`';
 		$order = ' ORDER BY '.$options['orderby'];
 		$params = array();
 		$where = array();
 		
 		// Options
-		if (is_array($options['statut']) or is_numeric($options['statut']))
+		if (is_array($options['status']) or is_numeric($options['status']))
 		{
 			// Type
-			if (is_array($options['statut']))
+			if (is_array($options['status']))
 			{
-				$where[] = 'A.`statut` IN ('.implode(',', array_fill(0, count($options['statut']), '?')).')';
-				$params = array_merge($params, $options['statut']);
+				$where[] = 'A.`status` IN ('.implode(',', array_fill(0, count($options['status']), '?')).')';
+				$params = array_merge($params, $options['status']);
 			}
 			else
 			{
-				$where[] = 'A.`statut`=?';
-				$params[] = intval($options['statut']);
+				$where[] = 'A.`status`=?';
+				$params[] = intval($options['status']);
 			}
 		}
 		if (!is_null($options['actif']))
@@ -366,10 +420,21 @@ class User extends BaseClass
 	 * Vérifie si un login existe déjà
 	 *
 	 * @param string $login le login à tester
+	 * @param int|NULL $ignore un id d'utilisateur à ignorer, ou NULL (facultatif, défaut : NULL)
 	 * @param boolean une confirmation
 	 */
-	public static function loginExists($login)
+	public static function loginExists($login, $ignore = NULL)
 	{
-		return (count(Database::get(self::$server)->query('SELECT * FROM `users` WHERE `login`=?;', array($login))) > 0);
+		// Init
+		$params = array($login);
+		$ignored = '';
+		
+		if (!is_null($ignore))
+		{
+			$ignored = ' AND `id_user`<>?';
+			$params[] = intval($ignore);
+		}
+		
+		return (Database::get(self::$server)->value('SELECT COUNT(*) FROM `users` WHERE `login`=?'.$ignored, $params) > 0);
 	}
 }
