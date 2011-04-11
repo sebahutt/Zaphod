@@ -1,8 +1,7 @@
 <?php
-
 /**
  * Classe générale d'environnement
- * 
+ *
  * La classe d'environnement centralise toutes les ressources et sert de base au fonctionnement de toutes les autres
  * classes. Sa présence est obligatoire pour le fonctionnement du système. Design Pattern : Singleton
  */
@@ -79,7 +78,7 @@ final class Env {
 	
 	/**
 	 * Surcharge de la méthode clone
-	 * 
+	 *
 	 * @return void
 	 * @throws SCException
 	 */
@@ -91,7 +90,7 @@ final class Env {
 	
 	/**
 	 * Initialisation de la classe d'environnement
-	 * 
+	 *
 	 * @return void
 	 * @throws Exception
 	 */
@@ -180,7 +179,7 @@ final class Env {
 	
 	/**
 	 * Indique si l'environnement a été initialisé ou non
-	 * 
+	 *
 	 * @return boolean la confirmation ou non
 	 */
 	public static function isInited()
@@ -190,7 +189,7 @@ final class Env {
 	
 	/**
 	 * Interrompt l'affichage d'un site en maintenance
-	 * 
+	 *
 	 * @return void
 	 */
 	private static function _dieAsMaintenance()
@@ -212,7 +211,7 @@ final class Env {
 	
 	/**
 	 * Ajoute une action sur un hook
-	 * 
+	 *
 	 * @param string $hook le nom du hook
 	 * @param mixed $action tout ce qui renvoie true pour is_callable()
 	 * @return void
@@ -224,7 +223,7 @@ final class Env {
 	
 	/**
 	 * Déclenche un hook
-	 * 
+	 *
 	 * @param string $hook le nom du hook
 	 * @param array $args les arguments à passer aux actions (facultatif, défaut : array())
 	 * @param boolean $clear indique s'il faut supprimer les actions programmées une fois traitées (facultatif, défaut : false)
@@ -262,7 +261,7 @@ final class Env {
 	
 	/**
 	 * Renvoie le chemin du dossier cache local
-	 * 
+	 *
 	 * @return string le chemin local, dont l'existence est vérifiée
 	 */
 	public static function getCachePath()
@@ -281,7 +280,7 @@ final class Env {
 	
 	/**
 	 * Récupère le cache du chargeur de classes
-	 * 
+	 *
 	 * @return array le cache existant
 	 */
 	protected static function _getAutoloadCache()
@@ -309,7 +308,11 @@ final class Env {
 				require($cacheFile);
 				
 				// Détection de changement
-				if (!isset(self::$_autoloadCache['dirs']) or !is_array(self::$_autoloadCache['dirs']) or count(array_diff(array_keys(self::$_autoloadDir), self::$_autoloadCache['dirs'])) > 0)
+				if (!isset(self::$_autoloadCache['path']) or self::$_autoloadCache['path'] != PATH_BASE)
+				{
+					self::_updateAutoloadCache();
+				}
+				elseif (!isset(self::$_autoloadCache['dirs']) or !is_array(self::$_autoloadCache['dirs']) or count(array_diff(array_keys(self::$_autoloadDir), self::$_autoloadCache['dirs'])) > 0)
 				{
 					self::_updateAutoloadCache();
 				}
@@ -321,13 +324,14 @@ final class Env {
 	
 	/**
 	 * Mise à jour du cache du chargeur de classes
-	 * 
+	 *
 	 * @return array le cache existant
 	 */
 	protected static function _updateAutoloadCache()
 	{
 		// Init
 		self::$_autoloadCache = array(
+			'path' => PATH_BASE,		// Chemin de base pour détecter les changements
 			'dirs' => array(),			// Liste des dossiers de base
 			'classes' => array()		// Chemin fichier des classes/interfaces
 		);
@@ -345,7 +349,7 @@ final class Env {
 	
 	/**
 	 * Récupère les éléments à mettre en cache sur un dossier de fichiers de classes
-	 * 
+	 *
 	 * @param string $path le chemin du dossier
 	 * @param boolean $recursive indique s'il faut parcourir les sous-dossiers (facultatif, défaut : false)
 	 * @return void
@@ -392,7 +396,7 @@ final class Env {
 	
 	/**
 	 * Ajoute un dossier de stockage des classes
-	 * 
+	 *
 	 * @param string $path le chemin du dossier
 	 * @param boolean $recursive indique s'il faut également parcourir les sous-dossiers (facultatif, défaut : false)
 	 * @return void
@@ -412,7 +416,7 @@ final class Env {
 	
 	/**
 	 * Méthode magique d'auto-chargement des classes
-	 * 
+	 *
 	 * @param string $class_name Le nom de la classe à charger
 	 * @return boolean true si la classe est chargée, false sinon
 	 */
@@ -440,7 +444,7 @@ final class Env {
 	
 	/**
 	 * Gestion des erreurs php
-	 * 
+	 *
 	 * @param int $errno code erreur php
 	 * @param string $errstr message de l'erreur
 	 * @param string $errfile chemin du fichier courant
@@ -476,7 +480,7 @@ final class Env {
 	
 	/**
 	 * Gestion des exceptions non interceptées
-	 * 
+	 *
 	 * @param Exception $exception l'objet exception
 	 * @return void
 	 */
@@ -506,7 +510,7 @@ final class Env {
 	
 	/**
 	 * Renvoi le timestamp de démarrage du script, ou si $diffToNow vaut true, le temps écoulé depuis le début du script, en secondes
-	 * 
+	 *
 	 * @param boolean $diffToNow indique s'il faut renvoyer le temps écoulé (true) ou simplement le timer de départ (false) (facultatif, défaut : false)
 	 * @return int le temps écoulé en secondes
 	 */
@@ -527,9 +531,9 @@ final class Env {
 	
 	/**
 	 * Renvoi le micro-timer
-	 *  
+	 *
 	 * Renvoi le microtime écoulé depuis le début du script
-	 * 
+	 *
 	 * @return float le temps au format microtime flottant (sec.millisecondes)
 	 */
 	public static function getMicrotime()
@@ -539,7 +543,7 @@ final class Env {
 	
 	/**
 	 * Obtention de paramètre de configuration
-	 * 
+	 *
 	 * @param string $param le nom du paramètre à obtenir
 	 * @param mixed $defaut la valeur par défaut si le paramètre n'est pas défini (optionnel)
 	 * @return mixed Retourne la valeur du paramètre, ou la valeur par défaut si le paramètre n'est pas défini.
@@ -551,9 +555,9 @@ final class Env {
 	
 	/**
 	 * Chemin relatif entre deux fichiers
-	 * 
+	 *
 	 * Renvoi le chemin relatif entre deux chemins absolus
-	 * 
+	 *
 	 * @param string $from Le fichier de départ
 	 * @param string $to Le fichier de destination
 	 * @return string Renvoie le chemin relatif
@@ -636,11 +640,11 @@ final class Env {
 	
 	/**
 	 * Vérifie si une ip correspond à la liste fournie
-	 * 
+	 *
 	 * Cette fonction parcours les différentes valeurs et/ou masques fournis en paramètre, et tente de
-	 * déterminer si l'ip fournie correspond à l'un d'entre eux. Les masques correspondent au début d'une 
+	 * déterminer si l'ip fournie correspond à l'un d'entre eux. Les masques correspondent au début d'une
 	 * adresse ip, par exemple 127.0.0
-	 * 
+	 *
 	 * @param string $ip l'ip à vérifier
 	 * @param array $matches la liste des valeurs ou masques possibles
 	 * @return boolean Renvoie true si une concordance est trouvée, false sinon
@@ -664,7 +668,7 @@ final class Env {
 	
 	/**
 	 * Détermine si le système tourne sous windows
-	 * 
+	 *
 	 * @return boolean Renvoie true si c'est le cas, false sinon
 	 */
 	public static function isOsWindows()
@@ -674,7 +678,7 @@ final class Env {
 	
 	/**
 	 * Charge le cache des stats sur les tâches CRON
-	 * 
+	 *
 	 * @return array les données en cache
 	 */
 	protected static function _getCronStatsCache()
@@ -697,7 +701,7 @@ final class Env {
 	
 	/**
 	 * Ecrit le cache des stats sur les tâches CRON
-	 * 
+	 *
 	 * @param array les données à écrire
 	 * @return void
 	 */
@@ -714,11 +718,11 @@ final class Env {
 	
 	/**
 	 * Récupère la dernière date d'exécution d'une tâche CRON
-	 * 
+	 *
 	 * @param string $name le nom de la tâche CRON
-	 * @param boolean|NULL $success indique si on veut la date de la dernière exécution réussie (true), échouée false) 
+	 * @param boolean|NULL $success indique si on veut la date de la dernière exécution réussie (true), échouée false)
 	 * ou la plus récente des deux (NULL) (facultatif, défaut : NULL)
-	 * 
+	 *
 	 * @return int|boolean le timestamp de la dernière exécution, ou false si non définie
 	 */
 	public static function getLastCronTime($name, $success = NULL)
@@ -744,12 +748,12 @@ final class Env {
 	
 	/**
 	 * Indique si une tâche CRON doit se lancer
-	 * 
+	 *
 	 * @param string $name le nom de la tâche CRON
 	 * @param int $interval le délai entre chaque exécution de la tâche (en secondes)
-	 * @param boolean|NULL $success indique si on veut la date de la dernière exécution réussie (true), échouée false) 
+	 * @param boolean|NULL $success indique si on veut la date de la dernière exécution réussie (true), échouée false)
 	 * ou la plus récente des deux (NULL) (facultatif, défaut : NULL)
-	 * 
+	 *
 	 * @return boolean une confirmation
 	 */
 	public static function shouldCronRun($name, $interval, $success = NULL)
@@ -760,7 +764,7 @@ final class Env {
 	
 	/**
 	 * Met à jour la dernière date d'exécution d'une tâche CRON (utilise la date courante)
-	 * 
+	 *
 	 * @param string $name le nom de la tâche CRON
 	 * @param int $interval le délai entre chaque exécution de la tâche (en secondes)
 	 * @param boolean $success indique si la tâche a réussi ou non (facultatif, défaut : true)
@@ -794,7 +798,7 @@ final class Env {
 	
 	/**
 	 * Vérifie si la tâche CRON doit être exécutée, et le cas échéant, la programme pour la fin de la requête
-	 * 
+	 *
 	 * @param string $name le nom de la tâche
 	 * @param mixed $action tout ce qui renvoie true à is_callable()
 	 * @param int $interval le délai entre chaque exécution de la tâche (en secondes)
@@ -818,7 +822,7 @@ final class Env {
 	
 	/**
 	 * Traite les tâches cron en attente
-	 * 
+	 *
 	 * @return void
 	 */
 	public static function doCrons()
@@ -846,7 +850,7 @@ final class Env {
 class SCException extends Exception {
 	/**
 	 * Constructeur de la classe
-	 * 
+	 *
 	 * @param string $message le message de l'exception
 	 * @param int $code le code de l'erreur (facultatif - défaut : 0)
 	 */
