@@ -1,7 +1,6 @@
 # Note : de nombreux éléments proviennent de HTML5BoilerPlate - Rendez à Caesar...
 
 
-
 # ----------------------------------------------------------------------
 # Proper MIME type for all files
 # ----------------------------------------------------------------------
@@ -186,11 +185,13 @@ FileETag None
 	# Fichier de réécriture chargé par défaut
 	DirectoryIndex _sys.php index.php index.html
 	
-	# Fichiers/dossiers/liens symboliques existants
+	# Fichiers/liens symboliques existants
 	RewriteCond %{REQUEST_FILENAME} -s [OR]
-	RewriteCond %{REQUEST_FILENAME} -l [OR]
-	RewriteCond %{REQUEST_FILENAME} -d
+	RewriteCond %{REQUEST_FILENAME} -l
 	RewriteRule ^.*$ - [NC,L]
+	
+	# Images manquantes
+	RewriteRule \.(png|jpg|jpeg|gif|bmp|ico)$ - [NC,F]
 	
 	# Réécriture
 	RewriteRule ^minified/(.*\.(js|css))$ _sys.php?__minify=$1 [NC,L,QSA]
