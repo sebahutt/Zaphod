@@ -32,8 +32,9 @@ class HttpRequestParser implements iRequestParser {
 	/**
 	 * Constructeur
 	 * @param string $request la requête à analyser
+	 * @param boolean $internalRedirect indique s'il s'agit d'une redirection interne (facultatif, défaut : false)
 	 */
-	public function __construct($request)
+	public function __construct($request, $internalRedirect = false)
 	{
 		// Mémorisation
 		$this->_request = $request;
@@ -45,36 +46,31 @@ class HttpRequestParser implements iRequestParser {
 			$this->_request = substr($this->_request, strlen(URL_FOLDER));
 		}
 		
-		// Détection de slash terminal non désiré (élimine les risques de duplicate content)
-		if (strlen($this->_request) > 0 and substr($this->_request, -1) === '/' and method_exists(Request::getResponse(), 'redirect'))
-		{
-			Request::getResponse()->redirect(removeTrailingSlash($this->_request), 301);
-		}
-		$this->_request = removeTrailingSlash($this->_request);
-		
 		// Recomposition de la requête sans les paramètres système
 		$queryParts = explode('?', $this->_request, 2);
 		$this->_baseQuery = array_shift($queryParts);
-		$this->_query = $this->_baseQuery.Request::getQueryString();
 		
 		// Route finale
 		$this->_rewriteString = Request::getGET('__rewrite', false, false);
-		$this->_routeQuery = $this->_baseQuery;
+		Request::clearGET('__rewrite');
+		$this->_routeQuery = ($this->_rewriteString !== false) ? $this->_rewriteString : $this->_baseQuery;
+		$this->_query = $this->_baseQuery.Request::getQueryString();
 		
 		// Log
 		Log::info('Chemin de routage : \''.$this->_routeQuery.'\'');
 		
 		// Ecouteur de changement de paramètres GET
-		Env::addAction('request.clearget', array($this, 'updateQueryString'));
+		Env::addAction('request.changeget', array($this, 'updateQueryString'));
 	}
 	
 	/**
 	 * Vérifie si la classe courante est en mesure d'analyser la requête
 	 *
 	 * @param string $request la requête à analyser, ou NULL pour utiliser l'environnement
+	 * @param boolean $internalRedirect indique s'il s'agit d'une redirection interne (facultatif, défaut : false)
 	 * @return iRequestParser|boolean une instance de la classe si la requête peut être gérée, false sinon
 	 */
-	public static function match($request = NULL)
+	public static function match($request = NULL, $internalRedirect = false)
 	{
 		// Vérification
 		if (is_null($request))
@@ -86,7 +82,7 @@ class HttpRequestParser implements iRequestParser {
 			$request = $_SERVER['REQUEST_URI'];
 		}
 		
-		return new HttpRequestParser($request);
+		return new HttpRequestParser($request, $internalRedirect);
 	}
 	
 	/**
@@ -145,7 +141,7 @@ class HttpRequestParser implements iRequestParser {
 	public function getQueryForForm($params = array())
 	{
 		$query = $this->getQuery($params);
-		return strlen($query) ? $query : './';
+		return strlen($query) ? '/'.$query : './';
 	}
 	
 	/**

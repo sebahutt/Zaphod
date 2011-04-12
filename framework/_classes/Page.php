@@ -1,10 +1,5 @@
 <?php
 /**
- * Fichier de définition de la classe de gestion des pages du site - fonctions génériques
- * @author Sébastien Hutter <sebastien@jcd-dev.fr>
- */
-
-/**
  * Classe de gestion des pages du site - fonctions génériques
  */
 class Page extends BaseClass
@@ -86,6 +81,12 @@ class Page extends BaseClass
 		$url = $this->get('url');
 		$paramNames = $this->getParamNames();
 		
+		// Url vide
+		if ($url === '')
+		{
+			return $url;
+		}
+		
 		// Si aucun paramètre
 		if (count($params) === 0)
 		{
@@ -93,7 +94,7 @@ class Page extends BaseClass
 			{
 				throw new SCException('Paramètres manquants pour l\'url (attendus : '.implode(', ', $paramNames).')');
 			}
-			return $url;
+			return $url.'/';
 		}
 		
 		// Remplacement
@@ -111,7 +112,7 @@ class Page extends BaseClass
 			}
 		}
 		
-		return implode('/', $parts);
+		return implode('/', $parts).'/';
 	}
 	
 	/**
@@ -183,6 +184,7 @@ class Page extends BaseClass
 	 */
 	public function getLink($content = NULL, $title = NULL, $params = array())
 	{
+		// Textes
 		if (is_null($content))
 		{
 			$content = $this->get('title', '(sans titre)');
@@ -283,7 +285,7 @@ class Page extends BaseClass
 		}
 		
 		// Sélection
-		$result = Database::get(self::$server)->query('SELECT * FROM `'.self::$table.'` A LEFT JOIN `'.self::$table.'_access` B ON A.`id_page`=B.`page` AND (B.`statut` IS NULL OR B.`statut`=?) WHERE id_page=?;', array(User::getCurrent()->statut, $id));
+		$result = Database::get(self::$server)->query('SELECT * FROM `'.self::$table.'` A LEFT JOIN `'.self::$table.'_access` B ON A.`id_page`=B.`page` AND (B.`status` IS NULL OR B.`status`=?) WHERE id_page=?;', array(User::getCurrent()->status, $id));
 		
 		// Si trouvé
 		if ($result->count() > 0)
@@ -308,7 +310,7 @@ class Page extends BaseClass
 	{
 		$server = Database::get(self::$server);
 		$params = array();
-		$params[] = User::getCurrent()->statut;
+		$params[] = User::getCurrent()->status;
 		
 		// Retrait des paramètres
 		$index = strpos($url, '?');
@@ -326,14 +328,10 @@ class Page extends BaseClass
 			{
 				$parts[$index] = '('.$part.'|:[[:alnum:]]+)';
 			}
-			$regexp = implode('/', $parts);
 			
-			// Activation des urls uniquement constituées de paramètres
-			$requiredLength = Env::getConfig('sys')->get('allParamRewrite') ? '`url` REGEXP ?' : '(LENGTH(`url`) > 0 AND `url` REGEXP ?)';
-			$regexpReq = $requiredLength.' OR ';
-			
-			// Ajout aux paramètres
-			$params[] = $regexp;
+			// Ajout
+			$regexpReq = '`url` REGEXP ? OR ';
+			$params[] = '^'.implode('/', $parts).'$';
 		}
 		else
 		{
@@ -343,9 +341,10 @@ class Page extends BaseClass
 		// Autres paramètres
 		$params[] = $url;
 		$params[] = $url;
+		$params[] = $url;
 		
 		// Requête
-		$result = $server->query('SELECT * FROM `'.self::$table.'` A LEFT JOIN `'.self::$table.'_access` B ON A.`id_page`=B.`page` AND (B.`statut` IS NULL OR B.`statut`=?) WHERE '.$regexpReq.'`url`=? OR `file`=? ORDER BY LENGTH(`url`) DESC, `id_parent` DESC;', $params);
+		$result = $server->query('SELECT * FROM `'.self::$table.'` A LEFT JOIN `'.self::$table.'_access` B ON A.`id_page`=B.`page` AND (B.`status` IS NULL OR B.`status`=?) WHERE '.$regexpReq.'(`extended`=1 AND (`url`=\'\' OR INSTR(?, `url`)=1)) OR `url`=? OR `file`=? ORDER BY LENGTH(`url`) DESC, `id_parent` DESC;', $params);
 		
 		// Si trouvé
 		$nbPages = $result->count();
@@ -365,8 +364,11 @@ class Page extends BaseClass
 					$test = self::urlMatchesPattern($url, $row['url']);
 					if ($test !== false)
 					{
+						$params = $test;
+						$exact = true;
+						
 						// Si statut particulier
-						if (!is_null($row['statut']))
+						if (!is_null($row['status']))
 						{
 							$page = $row;
 							break;
@@ -376,9 +378,6 @@ class Page extends BaseClass
 						{
 							$page = $row;
 						}
-						
-						$params = $test;
-						$exact = true;
 					}
 					elseif (!$exact and $page)
 					{
@@ -389,7 +388,7 @@ class Page extends BaseClass
 							$params = false;
 						}
 						// Si taille identique mais statut particulier
-						elseif (strlen($row['url']) == strlen($page['url']) and !is_null($row['statut']) and is_null($page['statut']))
+						elseif (strlen($row['url']) == strlen($page['url']) and !is_null($row['status']) and is_null($page['status']))
 						{
 							$page = $row;
 							$params = false;
@@ -459,14 +458,14 @@ class Page extends BaseClass
 		$user = User::getCurrent();
 		
 		// Statut
-		if (is_null($user->statut))
+		if (is_null($user->status))
 		{
-			$statut = 'B.`statut` IS NULL';
+			$status = 'B.`status` IS NULL';
 		}
 		else
 		{
-			$param[] = $user->statut;
-			$statut = '(B.`statut` IS NULL OR B.`statut`=?)';
+			$param[] = $user->status;
+			$status = '(B.`status` IS NULL OR B.`status`=?)';
 		}
 		
 		// Parent
@@ -485,7 +484,7 @@ class Page extends BaseClass
 		$force = $strict ? ' AND (B.`id_access` IS NOT NULL'.$logged.')' : '';
 		
 		// Récupération des pages
-		$result = Database::get(self::$server)->query('SELECT * FROM `'.self::$table.'` A INNER JOIN `'.self::$table.'_access` B ON A.`id_page`=B.`page` AND '.$statut.' WHERE `id_parent`'.$parent.' AND `nav`=1'.$force.' ORDER BY `order`', $param);
+		$result = Database::get(self::$server)->query('SELECT * FROM `'.self::$table.'` A INNER JOIN `'.self::$table.'_access` B ON A.`id_page`=B.`page` AND '.$status.' WHERE `id_parent`'.$parent.' AND `nav`=1'.$force.' ORDER BY `order`', $param);
 		return $result->castAs('Page');
 	}
 	

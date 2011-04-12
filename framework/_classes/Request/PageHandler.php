@@ -12,8 +12,9 @@ abstract class PageHandler {
 	/**
 	 * Constructeur
 	 * @param iRequestRoute $route l'objet route de la requête
+	 * @param boolean $internalRedirect indique s'il s'agit d'une redirection interne (facultatif, défaut : false)
 	 */
-	public function __construct($route)
+	public function __construct($route, $internalRedirect = false)
 	{
 		// Mémorisation
 		$this->_route = $route;

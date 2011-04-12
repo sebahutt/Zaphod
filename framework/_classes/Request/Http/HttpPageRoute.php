@@ -14,6 +14,11 @@ class HttpPageRoute implements iRequestRoute {
 	 */
 	protected $_page;
 	/**
+	 * Indique s'il s'agit d'une redirection interne
+	 * @var boolean
+	 */
+	protected $_internalRedirect;
+	/**
 	 * Données d'actions pré-requête
 	 * @var array
 	 */
@@ -29,10 +34,10 @@ class HttpPageRoute implements iRequestRoute {
 	 */
 	protected $_pageQuery = '';
 	/**
-	 * Partie de la requête correspondant aux paramètres additionnels
+	 * Partie additionnelle de la requête par rapport à l'url de la page
 	 * @var string
 	 */
-	protected $_paramQuery = '';
+	protected $_extraQuery = '';
 	/**
 	 * Identifiants contenus dans la requête
 	 * @var array
@@ -44,12 +49,14 @@ class HttpPageRoute implements iRequestRoute {
 	 *
 	 * @param iRequestParser $parser l'objet d'analyse de la requête
 	 * @param Page $page l'objet de la page routée
+	 * @param boolean $internalRedirect indique s'il s'agit d'une redirection interne (facultatif, défaut : false)
 	 */
-	public function __construct($parser, $page)
+	public function __construct($parser, $page, $internalRedirect = false)
 	{
 		// Mémorisation
 		$this->_parser = $parser;
 		$this->_page = $page;
+		$this->_internalRedirect = $internalRedirect;
 		
 		// Log
 		Log::info('Route active : HttpPageRoute ('.$this->_page->get('id_page').')');
@@ -59,9 +66,10 @@ class HttpPageRoute implements iRequestRoute {
 	 * Tente de router la requête courante
 	 *
 	 * @param iRequestParser $parser le parseur de requête
+	 * @param boolean $internalRedirect indique s'il s'agit d'une redirection interne (facultatif, défaut : false)
 	 * @return iRequestRoute|boolean une instance de la classe si la requête a pu être mappée, false sinon
 	 */
-	public static function match($parser)
+	public static function match($parser, $internalRedirect = false)
 	{
 		// Chargement de la page
 		$page = Page::getByUrl($parser->getRouteQuery());
@@ -70,7 +78,7 @@ class HttpPageRoute implements iRequestRoute {
 			return false;
 		}
 		
-		return new HttpPageRoute($parser, $page);
+		return new HttpPageRoute($parser, $page, $internalRedirect);
 	}
 	
 	/**
@@ -90,6 +98,31 @@ class HttpPageRoute implements iRequestRoute {
 	 */
 	public function init()
 	{
+		// Identifiants contenus dans la requête
+		$routeQuery = $this->_parser->getRouteQuery();
+		$this->_queryParams = $this->_page->extractUrlParams();
+		
+		// Parties de la requête
+		$baseQuery = Request::getParser()->getBaseQuery();
+		$this->_pageQuery = $this->_page->getUrl($this->_queryParams);
+		$this->_extraQuery = removeInitialSlash(substr($baseQuery, strlen($this->_pageQuery)));
+		
+		/*
+		 * Détection de slash terminal absent (élimine les risques de duplicate content)
+		 * Ne s'applique pas :
+		 * - en cas de redirection interne (n'est pas visible dans l'url)
+		 * - si le chemin est vide (page d'accueil)
+		 * - si la page utilise une requête étendue
+		 * - si la réponse en cours ne supporte pas les redirections
+		 */
+		if (!$this->_internalRedirect and strlen($routeQuery) > 0 and strlen($this->_extraQuery) === 0 and substr($routeQuery, -1) !== '/' and method_exists(Request::getResponse(), 'redirect'))
+		{
+			// Log
+			Log::info('Redirection pour éviter le duplicate content');
+			
+			Request::getResponse()->redirect(addTrailingSlash($routeQuery).Request::getQueryString(), 301);
+		}
+		
 		// Droits d'accès
 		if (!$this->_page->isAccessible())
 		{
@@ -125,30 +158,6 @@ class HttpPageRoute implements iRequestRoute {
 		// Nettoyage
 		Request::clearGet('__action');
 		
-		// Parties de la requête
-		$baseQuery = Request::getParser()->getBaseQuery();
-		$this->_pageQuery = $this->_page->getUrl();
-		$this->_paramQuery = removeInitialSlash(substr($baseQuery, strlen($this->_pageQuery)));
-		
-		// Identifiants contenus dans la requête
-		$this->_queryParams = array();
-		$queryParts = array_reverse(explode('/', $this->_paramQuery));
-		$queryId = false;
-		foreach ($queryParts as $part)
-		{
-			if (strlen($part) > 0)
-			{
-				if (preg_match('/[0-9]+/', $part))
-				{
-					$queryId = intval($part);
-				}
-				elseif ($queryId !== false)
-				{
-					$this->_queryParams[$part] = $queryId;
-				}
-			}
-		}
-		
 		return true;
 	}
 	
@@ -173,22 +182,18 @@ class HttpPageRoute implements iRequestRoute {
 	}
 	
 	/**
-	 * Renvoie la partie de la requête correspondant aux paramètres additionnels
+	 * Renvoie la partie additionnelle de la requête par rapport à l'url de la page
 	 *
-	 * @return string la requête
+	 * @return string la partie additionnelle
 	 */
-	public function getParamQuery()
+	public function getExtraQuery()
 	{
-		return $this->_paramQuery;
+		return $this->_extraQuery;
 	}
 	
 	/**
 	 * Renvoie les paramètres contenus dans le chemin de la requête elle-même
-	 * par exemple :
-	 * 		- la page /edit chargée avec la requête /edit/user/1 va renvoyer array( 'user' => 1 )
-	 * 		- la page /list chargée avec la requête /list/group/1/page/2 va renvoyer array( 'group' => 1, 'page' => 2 )
-	 * 		- la page /edit chargée avec la requête /edit/user/settings/1 va renvoyer array( 'user' => 1, 'settings' => 1 )
-	 * 		- la page /edit chargée avec la requête /edit/user/1/settings va renvoyer array( 'user' => 1 )
+	 * par exemple, la page /edit/user/:id chargée avec la requête /edit/user/1 va renvoyer array( 'id' => 1 )
 	 *
 	 * @return array les paramètres trouvés
 	 */

@@ -63,7 +63,7 @@ class Lang
 				Session::setCache('Lang', 'current', $cookie->getValue());
 				
 				// Prolongation du cookie
-				$cookie->touch();
+				$cookie->extend();
 			}
 			
 			// Valeur par défaut

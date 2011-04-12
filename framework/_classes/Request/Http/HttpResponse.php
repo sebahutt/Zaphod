@@ -42,7 +42,7 @@ class HttpResponse extends Response {
 			// Sécurisation
 			if (headers_sent())
 			{
-				//throw new SCException('Les headers ont déjà été envoyés, impossible de modifier la réponse');
+				throw new SCException('Les headers ont déjà été envoyés, impossible de modifier la réponse');
 			}
 			if (!self::statusExists($status))
 			{
@@ -153,6 +153,9 @@ class HttpResponse extends Response {
 	 */
 	protected function _sendHeaders()
 	{
+		// Ecouteur
+		Env::callActions('headers.send');
+		
 		// Détection de mode fastCGI
 		$status = $this->status();
 		if (substr(PHP_SAPI, 0, 3) === 'cgi')
@@ -164,17 +167,15 @@ class HttpResponse extends Response {
 			header(Request::getProtocol().' '.$status.' '.self::getStatusMessage($status));
 		}
 		
-		// Envoi des headers à proprement parler
+		// Envoi des headers
 		$headers = $this->getHeaders();
 		foreach ($headers as $name => $value )
 		{
 			header($name.': '.$value);
 		}
 		
-		// Send cookies
-		/*foreach ( $this->getCookieJar()->getResponseCookies() as $name => $cookie ) {
-			setcookie($cookie->getName(), $cookie->getValue(), $cookie->getExpires(), $cookie->getPath(), $cookie->getDomain(), $cookie->getSecure(), $cookie->getHttpOnly());
-		}*/
+		// Ecouteur
+		Env::callActions('headers.sent');
 	}
 	
 	/**
@@ -321,7 +322,7 @@ class HttpResponse extends Response {
 	public function displayDebug($output)
 	{
 		// Affichage
-		echo '<pre style="position: fixed; z-index: 999999; left: 20px; top: 20px; '.
+		echo '<pre style="position: fixed; z-index: 999999; left: 20px; top: 20px; max-width: 50%; overflow: auto; '.
 						 'background: rgba(0, 0, 0, 0.5); padding: 10px; color: white; '.
 						 'font: 10px/14px "Courier New", Courier, monospace;" '.
 						 'onclick="$(this).remove()"'.
@@ -370,7 +371,7 @@ class HttpResponse extends Response {
 		// Construction
 		$this->status($code);
 		$this->setHeader('Location', $target);
-		$this->clearContent($target);
+		$this->setContent($target);
 		
 		// Termine la requête
 		Request::stop();
@@ -431,6 +432,14 @@ class HttpResponse extends Response {
 		$previous = History::getPrevious();
 		
 		// Redirection
-		$this->redirect(($previous !== false) ? self::buildUrl($previous['query'], $previous['params']) : $default, $code);
+		if ($previous !== false)
+		{
+			$query = http_build_query($previous['params']);
+			$this->redirect((strlen($query) > 0) ? $previous['query'].'?'.$query : $previous['query'], $code);
+		}
+		else
+		{
+			$this->redirect($default, $code);
+		}
 	}
 }

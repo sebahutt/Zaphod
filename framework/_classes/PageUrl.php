@@ -51,6 +51,17 @@ class PageUrl extends BaseClassWrapper {
 	}
 	
 	/**
+	 * Extrait les paramètres passés dans l'url fournie en fonction des marqueurs de l'url interne
+	 *
+	 * @param string $url l'url à analyser, ou NULL pour utiliser l'url de chargement (facultatif, défaut : NULL)
+	 * @return array un tableau associatif clé => valeur
+	 */
+	public function extractUrlParams($url = NULL)
+	{
+		return $this->_wrapped->extractUrlParams(is_null($url) ? $this->_url : $url);
+	}
+	
+	/**
 	 * Lien complet vers la page
 	 *
 	 * @param string $content le contenu du lien, ou NULL pour utiliser le titre de la page (facultatif, défaut : NULL)

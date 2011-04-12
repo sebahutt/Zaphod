@@ -1,5 +1,7 @@
 # Note : de nombreux éléments proviennent de HTML5BoilerPlate - Rendez à Caesar...
 
+# Configuration OVH
+SetEnv PHP_VER 5
 
 # ----------------------------------------------------------------------
 # Proper MIME type for all files

@@ -580,21 +580,42 @@ class File extends FileSystemElement {
 	 * @param boolean $download true to force download, false to view in broser (if available)
 	 * @param boolean $filename final name for download (only if $download is true), or NULL to use file name
 	 * @return void
+	 * @throws SCException si la réponse ne supporte pas l'envoi de headers
+	 * @todo implémenter une solution plus complète comme http://w-shadow.com/blog/2007/08/12/how-to-force-file-download-with-php/
 	 */
 	public function output($download = false, $filename = NULL)
 	{
+		$response = Request::getResponse();
+		if (!method_exists($response, 'setHeader'))
+		{
+			throw new SCException('Le mode de la réponse ne permet pas l\'envoi de fichiers');
+		}
+		
+		// Init
+		$response->setHeader('Content-Type', $this->getMimeType());
+		
+		// Force le téléchargment
 		if ($download)
 		{
 			if (is_null($filename))
 			{
-				$filename = $this->getFilename();
+				$filename = $this->getBasename();
 			}
-			header('Content-Disposition: attachment; filename="'.addslashes($filename).'"');
+			$response->setHeader('Content-Disposition', 'attachment; filename="'.addslashes($filename).'"');
 		}
 		
-		// Output
-		header('Content-type: '.$this->getMimeType());
-		echo $this->getContents();
+		// Infos
+		$response->setHeader('Content-Transfer-Encoding', 'binary');
+		//$response->setHeader('Accept-Ranges', 'bytes');
+		
+		// Désactivation du cache
+		$response->setHeader('Cache-control', 'private');
+		$response->setHeader('Pragma', 'private');
+		$response->setHeader('Expires', 'Mon, 26 Jul 1997 05:00:00 GMT');
+		
+		// Envoi
+		$response->setContent($this->getContents());
+		Request::stop();
 	}
 	
 	/**

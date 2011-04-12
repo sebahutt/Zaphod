@@ -228,14 +228,11 @@ abstract class BaseClass extends DataHolderWatcherHolder
 	/**
 	 * Mise à jour des données de l'objet et enregistrement : si l'objet est nouveau (pas d'id), il est créé dans la base, sinon il est mis à jour.
 	 *
-	 * @param array $data les données à mettre à jour (facultatif, défaut : array())
+	 * @param string|array|NULL $fields le ou les champs à mettre à jour, ou NULL pour tous (facultatif, défaut : NULL)
 	 * @return int l'id de l'élément, ou false en cas d'erreur (ex : aucun champ défini)
 	 */
-	public function save($data = array())
+	public function save($fields = NULL)
 	{
-		// Application des données complémentaires
-		$this->set($data);
-		
 		// Si pas enregistrable
 		if (!$this->isSavable())
 		{
@@ -244,7 +241,7 @@ abstract class BaseClass extends DataHolderWatcherHolder
 		
 		// Relai
 		$new = $this->isNew();
-		$result = $this->_data->save($this->getTableName());
+		$result = $this->_data->save($this->getTableName(), $fields);
 		
 		// Si nouveau
 		if ($new and $result !== false)

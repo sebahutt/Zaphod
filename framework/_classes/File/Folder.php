@@ -84,7 +84,7 @@ class Folder extends FileSystemElement {
 	 * 	- string filter a regular expression to filter children
 	 * 	- boolean hideSystem true to hide system files and thumbnails cache (default : true)
 	 * 	- string|array sort a string or an array of string of properties to sort the children on (possible values: 'name', 'size', 'modified')
-	 * 	- string|array sortDirection a string or an array of string (if sort is an array) of sorting direction (possible values: 'ASC', 'DESC')
+	 * 	- string|array dir a string or an array of string (if sort is an array) of sorting direction (possible values: 'ASC', 'DESC')
 	 * 	- boolean underscoreFirst when sorting on name, true to put files beginning with a '_' on top (default : true)
 	 * 
 	 * @return array the children elements
@@ -118,7 +118,7 @@ class Folder extends FileSystemElement {
 			'filter' => NULL,
 			'hideSystem' => true,
 			'sort' => array(),
-			'sortDirection' => 'ASC',
+			'dir' => 'ASC',
 			'underscoreFirst' => true
 		), $options);
 		if (!is_array($options['sort']))
@@ -126,9 +126,9 @@ class Folder extends FileSystemElement {
 			$options['sort'] = array($options['sort']);
 		}
 		$nbSortFields = count($options['sort']);
-		if (!is_array($options['sortDirection']))
+		if (!is_array($options['dir']))
 		{
-			$options['sortDirection'] = array($options['sortDirection']);
+			$options['dir'] = array($options['dir']);
 		}
 		
 		// If no filter or type requirement
@@ -159,11 +159,11 @@ class Folder extends FileSystemElement {
 		if ($nbSortFields > 0)
 		{
 			// Fill sort directions to match sort fields array length
-			$nbDirections = count($options['sortDirection']);
+			$nbDirections = count($options['dir']);
 			if ($nbDirections < $nbSortFields)
 			{
-				$lastDirection = ($nbDirections > 0) ? $options['sortDirection'][$nbDirections-1] : 'ASC';
-				$options['sortDirection'] = array_merge($options['sortDirection'], array_fill(0, $nbSortFields-$nbDirections, $lastDirection));
+				$lastDirection = ($nbDirections > 0) ? $options['dir'][$nbDirections-1] : 'ASC';
+				$options['dir'] = array_merge($options['dir'], array_fill(0, $nbSortFields-$nbDirections, $lastDirection));
 			}
 			
 			// Build anonymous function
@@ -172,7 +172,7 @@ class Folder extends FileSystemElement {
 			foreach($options['sort'] as $index => $field)
 			{
 				// Sorting direction
-				$sortASC = (strtoupper($options['sortDirection'][$index]) == 'ASC');
+				$sortASC = (strtoupper($options['dir'][$index]) == 'ASC');
 				
 				// Get values
 				switch ($field)

@@ -15,5 +15,7 @@
 	define('PATH_TEMPLATES',	PATH_BASE.'_templates/');			// Dossier des fichiers de templates
 	define('PATH_INCLUDES',		PATH_BASE.'_includes/');			// Dossier des fichiers d'include
 	define('PATH_ERRORS',		PATH_BASE.'_errors/');				// Dossier des fichiers d'erreur
+	define('PATH_MAILS',		PATH_BASE.'_mails/');				// Dossier des copies des mails envoyés
+	define('URL_MAILS',			URL_BASE.'_mails/');					// Url des copies des mails envoyés
 	define('PATH_IMG',			PATH_BASE.'images/');				// Dossier local des images
 	define('URL_IMG',			'/images/');						// URL de base des images

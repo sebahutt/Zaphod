@@ -109,6 +109,39 @@ class User extends BaseClass
 	}
 	
 	/**
+	 * Renvoi l'id unique de l'utilisateur
+	 *
+	 * @return string l'id unique de 32 caractères
+	 * @throws SCException si l'utilisateur n'est pas enregistré dans la base
+	 */
+	public function getUniqid()
+	{
+		$uniqid = $this->get('uniqid');
+		return is_null($uniqid) ? $this->resetUniqid() : $uniqid;
+	}
+	
+	/**
+	 * Réinitialise l'id unique de l'utilisateur
+	 *
+	 * @return string le nouvel id unique de 32 caractères
+	 * @throws SCException si l'utilisateur n'est pas enregistré dans la base
+	 */
+	public function resetUniqid()
+	{
+		// Vérification
+		if ($this->isNew())
+		{
+			throw new SCException('L\'utilisateur doit être enregistré dans la base pour bénéficier d\'un uniqid');
+		}
+		
+		$uniqid = md5($this->get('id_user').uniqid());
+		$this->set('uniqid', $uniqid);
+		$this->save('uniqid');
+		
+		return $uniqid;
+	}
+	
+	/**
 	 * Renvoie le nom complet de l'utilisateur
 	 *
 	 * @param string $sep la chaîne de séparation entre les parties du nom (facultatif, défaut : ' ')
@@ -236,13 +269,13 @@ class User extends BaseClass
 	/**
 	 * Mise à jour des données de l'objet et enregistrement : si l'objet est nouveau (pas d'id), il est créé dans la base, sinon il est mis à jour.
 	 *
-	 * @param array $data les données à mettre à jour (facultatif, défaut : array())
+	 * @param string|array|NULL $fields le ou les champs à mettre à jour, ou NULL pour tous (facultatif, défaut : NULL)
 	 * @return int l'id de l'élément, ou false en cas d'erreur (ex : aucun champ défini)
 	 */
-	public function save($data = array())
+	public function save($fields = NULL)
 	{
 		$isNew = $this->isNew();
-		$result = parent::save($data);
+		$result = parent::save($fields);
 		
 		// Si valide, conversion des options
 		if ($result !== false and $isNew)
@@ -270,10 +303,20 @@ class User extends BaseClass
 		if (!isset(self::$_current))
 		{
 			// Si déjà en session
-			if (isset($_SESSION['id_user']) and $_SESSION['id_user'] !== false)
+			$id_user = Session::getCache('User', 'current', false);
+			if ($id_user !== false and $user = self::getById($id_user))
 			{
-				// Chargement
-				self::$_current = self::getById($_SESSION['id_user']);
+				self::$_current = $user;
+			}
+			elseif (Cookie::exists('user') and $user = self::getByUniqid(Cookie::get('user')->getValue()))
+			{
+				self::$_current = $user;
+				
+				// Mémorisation
+				Session::setCache('User', 'current', self::$_current->id_user);
+				
+				// Prolongation du cookie
+				Cookie::get('user')->extend();
 			}
 			else
 			{
@@ -289,6 +332,12 @@ class User extends BaseClass
 				
 				// Désactivation de l'enregistrement
 				self::$_current->disableSave(true);
+				
+				// Nettoyage des cookies
+				if (Cookie::exists('user'))
+				{
+					Cookie::get('user')->delete();
+				}
 			}
 		}
 		
@@ -296,7 +345,7 @@ class User extends BaseClass
 	}
 	
 	/**
-	 * Obtention d'un user
+	 * Obtention d'un utilisateur par son id
 	 *
 	 * @param int $id_user l'identifiant de l'utilisateur
 	 * @return User|boolean l'utilisateur désiré, ou false si inexistant
@@ -304,7 +353,7 @@ class User extends BaseClass
 	public static function getById($id_user)
 	{
 		// Requête
-		$result = Database::get(self::$server)->query('SELECT * FROM `users` A LEFT JOIN `status` B ON A.`status`=B.`id_status` WHERE A.`id_user`='.intval($id_user).';');
+		$result = Database::get(self::$server)->query('SELECT * FROM `users` A LEFT JOIN `status` B ON A.`status`=B.`id_status` WHERE A.`id_user`=?', $id_user);
 	
 		// Si trouvé
 		if ($result->count() > 0)
@@ -312,7 +361,32 @@ class User extends BaseClass
 			return Factory::getInstance('User', $result[0]);
 		}
 		
-		// Renvoi par défaut
+		return false;
+	}
+	
+	/**
+	 * Obtention d'un utilisateur par son uniqid
+	 *
+	 * @param int $uniqid l'identifiant unique de l'utilisateur
+	 * @return User|boolean l'utilisateur désiré, ou false si inexistant
+	 */
+	public static function getByUniqid($uniqid)
+	{
+		// Sécurisation
+		if (strlen($uniqid) !== 32)
+		{
+			return false;
+		}
+		
+		// Requête
+		$result = Database::get(self::$server)->query('SELECT * FROM `users` A LEFT JOIN `status` B ON A.`status`=B.`id_status` WHERE A.`uniqid`=?', $uniqid);
+	
+		// Si trouvé
+		if ($result->count() > 0)
+		{
+			return Factory::getInstance('User', $result[0]);
+		}
+		
 		return false;
 	}
 	
@@ -372,9 +446,10 @@ class User extends BaseClass
 	 *
 	 * @param string $login le nom d'utilisateur
 	 * @param string $pass le mot de passe
+	 * @param boolean $remind indique s'il faut mémoriser l'utilisateur par un cookie (facultatif, défaut : false)
 	 * @return User|boolean l'user désiré, ou false si identification non valide
 	 */
-	public static function logUser($login, $pass)
+	public static function logUser($login, $pass, $remind = false)
 	{
 		if (strlen($login) > 0)
 		{
@@ -388,7 +463,7 @@ class User extends BaseClass
 				self::$_current = Factory::getInstance('User', $result[0]);
 				
 				// Mémorisation
-				$_SESSION['id_user'] = self::$_current->id_user;
+				Session::setCache('User', 'current', self::$_current->id_user);
 				
 				// Date de connection
 				Database::get(self::$server)->exec('UPDATE `users` SET `last_connect`=NOW() WHERE `id_user`=?', array(self::$_current->id_user));
@@ -396,11 +471,16 @@ class User extends BaseClass
 				// Log
 				Log::info('Utilisateur courant identifié : '.self::$_current->first_name.' '.self::$_current->last_name);
 				
+				// Mémorisation
+				if ($remind)
+				{
+					Cookie::set('user', self::$_current->getUniqid());
+				}
+				
 				return self::$_current;
 			}
 		}
 		
-		// Renvoi par défaut
 		return false;
 	}
 	
@@ -413,7 +493,13 @@ class User extends BaseClass
 	{
 		// Effacement
 		self::$_current = NULL;
-		$_SESSION['id_user'] = NULL;
+		Session::clearCache('User', 'current');
+		
+		// Nettoyage des cookies
+		if (Cookie::exists('user'))
+		{
+			Cookie::get('user')->delete();
+		}
 	}
 	
 	/**

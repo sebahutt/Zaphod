@@ -121,6 +121,9 @@ class Database
 			$request = preg_replace('/(INTO|UPDATE|FROM|JOIN|UNION|DESCRIBE)(\s+`?)/i', '$1$2'.$prefix, $request);
 		}
 		
+		// Log
+		Log::debug('Exécution de la requête sur : '.$request.' (Paramètres : '.var_export($params, true).')');
+		
 		// Préparation
 		$result = $this->_link->prepare($request);
 		
@@ -732,7 +735,33 @@ class DatabaseField
 		switch ($this->_config['type'])
 		{
 			case 'number':
-				return intval($value);
+				// Les systèmes 32 bits sont limités à 2147483647, traitement manuel
+				if (!is_int($value))
+				{
+					if (is_string($value) and strlen(ltrim($value, '-')) > 9)
+					{
+						if (preg_match('/^(-?)([0-9]+)/', $value, $matches))
+						{
+							$value = $matches[1].$matches[2];
+						}
+						else
+						{
+							$value = 0;
+						}
+					}
+					else
+					{
+						$value = intval($value);
+					}
+				}
+				
+				// Signe
+				if ($this->_config['unsigned'])
+				{
+					$value = max(0, $value);
+				}
+				
+				return $value;
 				break;
 			
 			case 'float':
@@ -1255,10 +1284,11 @@ class DatabaseResultRow extends DataHolderWatcher {
 	/**
 	 * Déclenche l'enregistrement des champs modifiés, et crée les entrées si nécessaire
 	 *
-	 * @param string|array|boolean $tables la ou les tables à enregistrer, true pour utiliser automatiquement la première, ou false pour toutes (facultatif, défaut : false)
+	 * @param string|array|boolean|NULL $tables la ou les tables à enregistrer, true pour utiliser automatiquement la première, ou NULL pour toutes (facultatif, défaut : NULL)
+	 * @param string|array|NULL $fields le ou les champs à enregistrer, ou NULL pour tous - ignoré sur un nouvel objet (facultatif, défaut : NULL)
 	 * @return int|boolean l'id de l'entrée de la première table enregistrée, ou false en cas d'erreur
 	 */
-	public function save($tables = false)
+	public function save($tables = NULL, $fields = NULL)
 	{
 		// Init
 		$tablesNames = $this->getResult()->getTablesNames();
@@ -1274,13 +1304,19 @@ class DatabaseResultRow extends DataHolderWatcher {
 		{
 			$tables = array($tables);
 		}
-		elseif ($tables === false)
-		{
-			$tables = $tablesNames;
-		}
 		elseif ($tables === true)
 		{
 			$tables = array($this->getResult()->getFirstTableName());
+		}
+		elseif (!is_array($tables))
+		{
+			$tables = $tablesNames;
+		}
+		
+		// Champs concernés
+		if (is_string($fields))
+		{
+			$fields = array($fields);
 		}
 		
 		// Parcours
@@ -1313,6 +1349,12 @@ class DatabaseResultRow extends DataHolderWatcher {
 				else
 				{
 					$tableModified = array_intersect($modified, $table->getFieldsNames());
+					
+					// Si liste de champs
+					if (is_array($fields))
+					{
+						$tableModified = array_intersect($tableModified, $fields);
+					}
 				}
 				
 				// Requête

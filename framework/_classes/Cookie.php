@@ -40,10 +40,15 @@ class Cookie {
 	 */
 	protected $_httponly;
 	/**
-	 * Indique si le cookie est en attente de mise à jour
+	 * Indique si le cookie a été modifié
 	 * @var boolean
 	 */
 	protected $_modified;
+	/**
+	 * Indique si le cookie est initialisé
+	 * @var boolean
+	 */
+	protected $_inited;
 	/**
 	 * Liste des cookies gérés
 	 * @var array
@@ -54,6 +59,16 @@ class Cookie {
 	 * @var boolean
 	 */
 	protected static $_crypt = false;
+	/**
+	 * Ressource du module de chiffrement
+	 * @var int
+	 */
+	protected static $_cryptModule;
+	/**
+	 * Préfixe interne de nommage
+	 * @var string
+	 */
+	protected static $_prefix;
 	/**
 	 * Clé secrête de cryptage
 	 * @var string
@@ -74,11 +89,6 @@ class Cookie {
 	 * @var boolean
 	 */
 	protected static $_ssl = false;
-	/**
-	 * Ressource du module de chiffrement
-	 * @var int
-	 */
-	protected static $_cryptModule;
 	
 	/**
 	 * Initialise la classe
@@ -118,16 +128,17 @@ class Cookie {
 	 *
 	 * @param string $name le nom du cookie
 	 * @param string $value la valeur du cookie
-	 * @param mixed $expire la date d'expiration au format timestamp UNIX (facultatif, défaut : 0)
+	 * @param int|NULL $expire la date d'expiration au format timestamp UNIX, ou NULL pour utiliser la valeur de la configuration (facultatif, défaut : NULL)
 	 * @param string $path chemin interne de validité (facultatif, défaut : '/')
 	 * @param string $domain domaine de validité, ou NULL pour utiliser le domaine courant (facultatif, défaut : NULL)
 	 * @param boolean $secure indique si le cookie n'est envoyé que sur une connexion sécurisée (facultatif, défaut : false)
 	 * @param boolean $httponly indique si le cookie ne doit être lisible que via HTTP (facultatif, défaut : false)
 	 */
-	protected function __construct($name, $value, $expires = 0, $path = '/', $domain = null, $secure = false, $httponly = false)
+	protected function __construct($name, $value, $expires = NULL, $path = '/', $domain = null, $secure = false, $httponly = false)
 	{
 		// Init
 		$this->_modified = false;
+		$this->_inited = false;
 		
 		// Mémorisation
 		$this->_name = $name;
@@ -139,16 +150,19 @@ class Cookie {
 		$this->setDomain($domain);
 		$this->secure($secure);
 		$this->httpOnly($httponly);
+		
+		// Fin de l'initialisation
+		$this->_inited = true;
 	}
 	
 	/**
-	 * Marque le cookie comme modifié, et planifie son envoi au navigateur
+	 * Marque un cookie comme modifié, et planifie son envoi
 	 *
 	 * @return void
 	 */
 	public function markAsModified()
 	{
-		if (!$this->_modified)
+		if ($this->_inited and !$this->_modified)
 		{
 			// Enregistrement pour l'envoi
 			Env::addAction('headers.sent', array($this, 'send'));
@@ -156,16 +170,6 @@ class Cookie {
 			// Mémorisation
 			$this->_modified = true;
 		}
-	}
-	
-	/**
-	 * Indique si le cookie a été modifié
-	 *
-	 * @return boolean une confirmation
-	 */
-	public function isModified()
-	{
-		return $this->_modified;
 	}
 
 	/**
@@ -186,16 +190,8 @@ class Cookie {
 	 */
 	public function setValue($value)
 	{
-		// Détection de changement
-		$value = (string)$value;
-		if ($this->_value !== $value)
-		{
-			$this->_value = $value;
-			if (!$this->_modified)
-			{
-				$this->markAsModified();
-			}
-		}
+		$this->_value = (string)$value;
+		$this->markAsModified();
 	}
 
 	/**
@@ -211,18 +207,18 @@ class Cookie {
 	/**
 	 * Définit la date d'expiration du cookie
 	 *
-	 * @param int la date d'expiration au format timestamp UNIX
+	 * @param int|NULL la date d'expiration au format timestamp UNIX, ou NULL pour utiliser la valeur de la configuration (facultatif, défaut : NULL)
 	 * @return void
 	 */
-	public function setExpires($expire)
+	public function setExpires($expire = NULL)
 	{
-		// Détection de changement
-		$expire = (int)$expire;
-		if ($this->_expires !== $expire)
+		// Format
+		if (is_null($expire))
 		{
-			$this->_expires = $expire;
-			$this->markAsModified();
+			$expire = time()+Env::getConfig('cookie')->get('duration');
 		}
+		$this->_expires = (int)$expire;
+		$this->markAsModified();
 	}
 
 	/**
@@ -243,13 +239,8 @@ class Cookie {
 	 */
 	public function setPath($path)
 	{
-		// Détection de changement
-		$path = (string)$path;
-		if ($this->_path !== $path)
-		{
-			$this->_path = $path;
-			$this->markAsModified();
-		}
+		$this->_path = (string)$path;
+		$this->markAsModified();
 	}
 
 	/**
@@ -270,13 +261,8 @@ class Cookie {
 	 */
 	public function setDomain($domain)
 	{
-		// Détection de changement
-		$domain = (string)$domain;
-		if ($this->_domain !== $domain)
-		{
-			$this->_domain = $domain;
-			$this->markAsModified();
-		}
+		$this->_domain = (string)$domain;
+		$this->markAsModified();
 	}
 
 	/**
@@ -298,12 +284,8 @@ class Cookie {
 	public function secure($enable)
 	{
 		// Détection de changement
-		$enable = (bool)$enable;
-		if ($this->_secured !== $enable)
-		{
-			$this->_secured = $enable;
-			$this->markAsModified();
-		}
+		$this->_secured = (bool)$enable;
+		$this->markAsModified();
 	}
 
 	/**
@@ -326,12 +308,8 @@ class Cookie {
 	public function httpOnly($enable)
 	{
 		// Détection de changement
-		$enable = (bool)$enable;
-		if ($this->_httponly !== $enable)
-		{
-			$this->_httponly = $enable;
-			$this->markAsModified();
-		}
+		$this->_httponly = (bool)$enable;
+		$this->markAsModified();
 	}
 
 	/**
@@ -353,6 +331,9 @@ class Cookie {
 	{
 		// Affecte le 01-01-1980 comme date d'expiration
 		$this->setExpires(315554400);
+		
+		// Effacement global
+		self::_eraseCookie($this->_name);
 	}
 	
 	/**
@@ -367,23 +348,34 @@ class Cookie {
 	}
 	
 	/**
+	 * Redéfinit la période de validité du cookie en utilisant la période par défaut de la configuration
+	 *
+	 * @return void
+	 */
+	public function extend()
+	{
+		$this->setExpires(NULL);
+	}
+	
+	/**
 	 * Envoie le cookie
 	 *
 	 * @return void
 	 */
 	public function send()
 	{
-		// Préparation de la valeur
+		// Préparation
+		$name = self::_getRealName($this->getName());
 		$value = self::_secureCookieValue($this->getValue(), $this->getExpires());
 		
 		// L'option $httponly n'est disponible que pour Php >= 5.2
 		if (version_compare(PHP_VERSION, '5.2') >= 0)
 		{
-			setcookie($this->getName(), $value, $this->getExpires(), $this->getPath(), $this->getDomain(), $this->isSecured(), $this->isHttpOnly());
+			setcookie($name, $value, $this->getExpires(), URL_FOLDER.$this->getPath(), $this->getDomain(), $this->isSecured(), $this->isHttpOnly());
 		}
 		else
 		{
-			setcookie($this->getName(), $value, $this->getExpires(), $this->getPath(), $this->getDomain(), $this->isSecured());
+			setcookie($name, $value, $this->getExpires(), URL_FOLDER.$this->getPath(), $this->getDomain(), $this->isSecured());
 		}
 	}
 	
@@ -425,28 +417,70 @@ class Cookie {
 	}
 	
 	/**
+	 * Renvoie le nom interne du cookie, préfixé par le sous-domaine si nécessaire
+	 *
+	 * @param string $name le nom à formatter
+	 * @return string le nom formatté
+	 */
+	protected static function _getRealName($name)
+	{
+		if (!isset(self::$_prefix))
+		{
+			self::$_prefix = (strlen(URL_FOLDER)) > 0 ? str_replace('/', '_', URL_FOLDER) : '';
+		}
+		
+		return self::$_prefix.$name;
+	}
+	
+	/**
+	 * Indique si un cookie du nom fourni existe
+	 *
+	 * @param string $name le nom du cookie
+	 * @return boolean une confirmation
+	 */
+	public static function exists($name)
+	{
+		return (isset(self::$_cookies[$name]) or isset($_COOKIE[self::_getRealName($name)]));
+	}
+	
+	/**
+	 * Efface les traces d'un cookie
+	 *
+	 * @param string $name le nom du cookie
+	 * @return void
+	 */
+	protected static function _eraseCookie($name)
+	{
+		unset(self::$_cookies[$name]);
+		unset($_COOKIE[self::_getRealName($name)]);
+	}
+	
+	/**
 	 * Renvoie l'objet cookie correspondant au nom demandé
 	 *
 	 * @param string $name le nom du cookie
-	 * @param mixed $expire la date d'expiration au format timestamp UNIX (facultatif, défaut : 0)
+	 * @param int|NULL $expire la date d'expiration au format timestamp UNIX, ou NULL pour utiliser la valeur de la configuration (facultatif, défaut : NULL)
 	 * @param string $path chemin interne de validité (facultatif, défaut : '/')
 	 * @param string $domain domaine de validité, ou NULL pour utiliser le domaine courant (facultatif, défaut : NULL)
 	 * @param boolean $secure indique si le cookie n'est envoyé que sur une connexion sécurisée (facultatif, défaut : false)
 	 * @param boolean $httponly indique si le cookie ne doit être lisible que via HTTP (facultatif, défaut : false)
 	 * @return Cookie l'objet cookie
 	 */
-	public static function get($name, $expires = 0, $path = '/', $domain = null, $secure = false, $httponly = false)
+	public static function get($name, $expires = NULL, $path = '/', $domain = null, $secure = false, $httponly = false)
 	{
 		if (!isset(self::$_cookies[$name]))
 		{
 			// Par défaut
 			$value = '';
 			
+			// Nom réel
+			$realname = self::_getRealName($name);
+			
 			// Valeur
-			if (isset($_COOKIE[$name]))
+			if (isset($_COOKIE[$realname]))
 			{
 				// Récupération des éléments
-				$cookieValues = explode('|', $_COOKIE[$name]);
+				$cookieValues = explode('|', $_COOKIE[$realname]);
 				
 				// Si valide
 				if ((count($cookieValues) === 4) and ($cookieValues[1] == 0 or $cookieValues[1] >= time()))
@@ -491,14 +525,14 @@ class Cookie {
 	 *
 	 * @param string $name le nom du cookie
 	 * @param mixed $value la valeur du coookie
-	 * @param mixed $expire la date d'expiration au format timestamp UNIX (facultatif, défaut : 0)
+	 * @param int|NULL $expire la date d'expiration au format timestamp UNIX, ou NULL pour utiliser la valeur de la configuration (facultatif, défaut : NULL)
 	 * @param string $path chemin interne de validité (facultatif, défaut : '/')
 	 * @param string $domain domaine de validité, ou NULL pour utiliser le domaine courant (facultatif, défaut : NULL)
 	 * @param boolean $secure indique si le cookie n'est envoyé que sur une connexion sécurisée (facultatif, défaut : false)
 	 * @param boolean $httponly indique si le cookie ne doit être lisible que via HTTP (facultatif, défaut : false)
 	 * @return Cookie l'objet cookie
 	 */
-	public static function set($name, $value, $expires = 0, $path = '/', $domain = null, $secure = false, $httponly = false)
+	public static function set($name, $value, $expires = NULL, $path = '/', $domain = null, $secure = false, $httponly = false)
 	{
 		self::get($name, $expires, $path, $domain, $secure, $httponly)->setValue($value);
 	}

@@ -5,39 +5,39 @@
 class LocalManager extends BaseManager implements FileManager {
 	/**
 	 * Returns the path for use with filesystem encoding
-	 * 
+	 *
 	 * @param string $path the path to encode
 	 * @return the encoded path
 	 */
 	protected function _encodeName($path)
 	{
-		if (DIRECTORY_SEPARATOR == '\\')
-		{
+		//if (DIRECTORY_SEPARATOR == '\\')
+		//{
 			$path = utf8_decode($path);
-		}
+		//}
 		
 		return $path;
 	}
 
 	/**
 	 * Encodes the filename returned by filesystem encoding
-	 * 
+	 *
 	 * @param string $path the path to decode
 	 * @return the decoded path
 	 */
 	protected function _decodeName($path)
 	{
-		if (DIRECTORY_SEPARATOR == '\\')
-		{
+		//if (DIRECTORY_SEPARATOR == '\\')
+		//{
 			$path = utf8_encode($path);
-		}
+		//}
 		
 		return $path;
 	}
 	
 	/**
 	 * Return a string depending on file manager type ('local', 'ftp', 'web'...)
-	 * 
+	 *
 	 * @return string the file manager type
 	 */
 	public function getType()
@@ -47,7 +47,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Check if a path really exists
-	 * 
+	 *
 	 * @param string $path the path to test
 	 * @return boolean true if the path exists, else false
 	 */
@@ -58,7 +58,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Tests if a path if a file
-	 * 
+	 *
 	 * @param string $path the path to test
 	 * @return boolean if the path is a file, else false
 	 */
@@ -69,7 +69,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Tests if a path if a folder
-	 * 
+	 *
 	 * @param string $path the path to test
 	 * @return boolean if the path is a folder, else false
 	 */
@@ -80,7 +80,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Get the contents of a file
-	 * 
+	 *
 	 * @param string $path the path to read
 	 * @return string|boolean the file contents, or false if error
 	 */
@@ -91,7 +91,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Put the contents of a file
-	 * 
+	 *
 	 * @param string $path the path to use
 	 * @param string $content the content to write
 	 * @return int|boolean number of bytes written, or false if error
@@ -103,7 +103,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Move an element to a new location within the same file manager
-	 * 
+	 *
 	 * @param string $oldPath the original path
 	 * @param string $newPath the target path
 	 * @return boolean true if the element was moved, else false
@@ -115,7 +115,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Delete a file
-	 * 
+	 *
 	 * @param string $path the path to delete
 	 * @return boolean true if the file was deleted, else false
 	 */
@@ -133,7 +133,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Change permissions
-	 * 
+	 *
 	 * @param string $path the path to use
 	 * @param int $mode the mode to use, as an octal number
 	 * @return boolean true if the permissions were set, else false
@@ -145,7 +145,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Create a folder
-	 * 
+	 *
 	 * @param string $path the path to create
 	 * @param int $mode the mode to use, as an octal number
 	 * @param boolean $recursive true to create parent folders i f they don't exist
@@ -158,7 +158,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Delete a folder
-	 * 
+	 *
 	 * @param string $path the path to delete
 	 * @return boolean true if the folder was deleted, else false
 	 */
@@ -169,7 +169,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Get the size of a file
-	 * 
+	 *
 	 * @param string $path the path to use
 	 * @return int size in bytes
 	 */
@@ -180,7 +180,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Get last modified time
-	 * 
+	 *
 	 * @param string $path the path to use
 	 * @return int|boolean the last modified time as a Unix timestamp, or false if error
 	 */
@@ -191,7 +191,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Get the size of an image
-	 * 
+	 *
 	 * @param string $path the path to use
 	 * @return array an array with the following keys :
 	 * 	 - width
@@ -215,7 +215,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Get the elements in a folder
-	 * 
+	 *
 	 * @param string $path the folder path
 	 * @return array the list of the elements, without '.' and '..'
 	 */
@@ -244,7 +244,7 @@ class LocalManager extends BaseManager implements FileManager {
 	
 	/**
 	 * Get the mime type of a file
-	 * 
+	 *
 	 * @param string $path the file path
 	 * @param string $default the default mime if it can't be detected
 	 * @return string the found mime type

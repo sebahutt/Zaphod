@@ -13,11 +13,12 @@ class HttpAjaxPageHandler extends PageHandler implements iRequestHandler {
 	 * Constructeur
 	 * @param iRequestRoute $route l'objet route de la requête
 	 * @param array $ajax les actions de la requête ajax
+	 * @param boolean $internalRedirect indique s'il s'agit d'une redirection interne (facultatif, défaut : false)
 	 */
-	public function __construct($route, $ajax)
+	public function __construct($route, $ajax, $internalRedirect = false)
 	{
 		// Mémorisation
-		parent::__construct($route);
+		parent::__construct($route, $internalRedirect);
 		$this->_ajax = $ajax;
 	}
 	
@@ -25,9 +26,10 @@ class HttpAjaxPageHandler extends PageHandler implements iRequestHandler {
 	 * Teste si le handler gère le type de route en cours
 	 * 
 	 * @param iRequestRoute la route en cours de traitement
+	 * @param boolean $internalRedirect indique s'il s'agit d'une redirection interne (facultatif, défaut : false)
 	 * @return iRequestHandler|boolean une instance de la classe si elle peut gérer le route, false sinon
 	 */
-	public static function handles($route)
+	public static function handles($route, $internalRedirect = false)
 	{
 		if ($route instanceof HttpPageRoute)
 		{
@@ -58,7 +60,7 @@ class HttpAjaxPageHandler extends PageHandler implements iRequestHandler {
 			// Si requête Ajax
 			if ($ajax)
 			{
-				return new HttpAjaxPageHandler($route, $ajax);
+				return new HttpAjaxPageHandler($route, $ajax, $internalRedirect);
 			}
 		}
 		

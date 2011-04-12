@@ -17,7 +17,7 @@ if (ini_get('register_globals'))
 		$noUnset = array('GLOBALS', '_GET',	'_POST', '_COOKIE',	'_REQUEST', '_SERVER', '_ENV', '_FILES');
 		
 		// Liste des superglobales
-		$input = array_merge($_GET, $_POST,	$_COOKIE, $_SERVER,	$_ENV, $_FILES,	$_SESSION);
+		$input = array_merge($_GET, $_POST,	$_COOKIE, $_SERVER,	$_ENV, $_FILES);
 		
 		// Parcours
 		foreach ($input as $key=> $value)
@@ -270,6 +270,17 @@ function removeInitialSlash($path)
 function removeTrailingSlash($path)
 {
 	return rtrim($path, '/');
+}
+
+/**
+ * Retire les slashs initiaux et finaux d'un chemin si nécessaire
+ *
+ * @param string $path le chemin à nettoyer
+ * @param string le chemin nettoyé
+ */
+function removeSlashes($path)
+{
+	return trim($path, '/');
 }
 
 /**

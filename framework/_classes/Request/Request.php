@@ -132,6 +132,7 @@ class Request extends StaticClass {
 		
 		// Headers et corps
 		self::$_body = @file_get_contents('php://input');
+		self::_getPut();
 	}
 	
 	/**
@@ -352,13 +353,14 @@ class Request extends StaticClass {
 	 * Récupère le premier objet d'analyse de requête compatible avec la requête en cours
 	 *
 	 * @param string $request la requête à analyser, ou NULL pour utiliser l'environnement
+	 * @param boolean $internalRedirect indique s'il s'agit d'une redirection interne (facultatif, défaut : false)
 	 * @return iRequestParser|boolean l'objet d'analyse trouvé, ou false si aucun
 	 */
-	public static function getRequestParser($request = NULL)
+	public static function getRequestParser($request = NULL, $internalRedirect = false)
 	{
 		foreach (self::$_parsers as $class)
 		{
-			if ($parser = call_user_func(array($class, 'match'), $request))
+			if ($parser = call_user_func(array($class, 'match'), $request, $internalRedirect))
 			{
 				return $parser;
 			}
@@ -371,13 +373,14 @@ class Request extends StaticClass {
 	 * Récupère la première route compatible avec le parser parmis celles disponibles
 	 *
 	 * @param iRequestParser $parser le parser
+	 * @param boolean $internalRedirect indique s'il s'agit d'une redirection interne (facultatif, défaut : false)
 	 * @return iRequestRoute|boolean la route trouvée, ou false si aucune
 	 */
-	public static function getParserRoute($parser)
+	public static function getParserRoute($parser, $internalRedirect = false)
 	{
 		foreach (self::$_routes as $class)
 		{
-			if ($route = call_user_func(array($class, 'match'), $parser))
+			if ($route = call_user_func(array($class, 'match'), $parser, $internalRedirect))
 			{
 				return $route;
 			}
@@ -390,13 +393,14 @@ class Request extends StaticClass {
 	 * Récupère le première handler compatible avec la route parmis ceux disponibles
 	 *
 	 * @param iRequestRoute $route la route
+	 * @param boolean $internalRedirect indique s'il s'agit d'une redirection interne (facultatif, défaut : false)
 	 * @return iRequestHandler|boolean le handler trouvé, ou false si aucun
 	 */
-	public static function getRouteHandler($route)
+	public static function getRouteHandler($route, $internalRedirect = false)
 	{
 		foreach (self::$_handlers as $class)
 		{
-			if ($handler = call_user_func(array($class, 'handles'), $route))
+			if ($handler = call_user_func(array($class, 'handles'), $route, $internalRedirect))
 			{
 				return $handler;
 			}
@@ -413,7 +417,8 @@ class Request extends StaticClass {
 	public static function run()
 	{
 		// Actions
-		Env::callActions('start');
+		Log::info('Démarrage de la requête');
+		Env::callActions('request.start');
 		
 		// Préparation
 		$response = self::getResponse();
@@ -431,7 +436,7 @@ class Request extends StaticClass {
 		$route = self::getParserRoute($parser);
 		
 		// Si aucune route trouvée
-		if (!$parser)
+		if (!$route)
 		{
 			self::abort(404);	// Not Found
 		}
@@ -463,6 +468,7 @@ class Request extends StaticClass {
 		
 		// Actions
 		Env::callActions('request.end');
+		Log::info('Fin de la requête');
 		
 		// Terminaison
 		self::stop();
@@ -518,6 +524,7 @@ class Request extends StaticClass {
 		
 		// Actions
 		Env::callActions('request.stop');
+		Log::info('Terminaison du script');
 		
 		exit();
 	}
@@ -534,7 +541,7 @@ class Request extends StaticClass {
 		Log::info('Tentative de redirection interne vers \''.$request.'\'');
 		
 		// Test de la validité de l'environnement
-		if ($parser = self::getRequestParser($request) and $route = self::getParserRoute($parser) and $handler = self::getRouteHandler($route) and $route->init())
+		if ($parser = self::getRequestParser($request, true) and $route = self::getParserRoute($parser, true) and $handler = self::getRouteHandler($route, true) and $route->init())
 		{
 			// Log
 			Log::info('Redirection interne valide');
@@ -570,12 +577,6 @@ class Request extends StaticClass {
 	 */
 	public static function issetParam($var, $ignoreEmpty = true)
 	{
-		// Détection de requête PUT
-		if (!isset(self::$_put))
-		{
-			$_REQUEST = array_merge($_REQUEST, self::_getPut());
-		}
-		
 		// Si défini
 		if (isset($_REQUEST[$var]) and (!$ignoreEmpty or is_array($_REQUEST[$var]) or strlen(trim($_REQUEST[$var])) > 0))
 		{
@@ -650,7 +651,7 @@ class Request extends StaticClass {
 	}
 	
 	/**
-	 * Recherche dans les données GET et POST une variable et renvoie sa valeur si elle existe, sinon renvoie
+	 * Recherche dans les données PUT, POST et GET une variable et renvoie sa valeur si elle existe, sinon renvoie
 	 * $defaut. Il est possible d'ignorer les variables vides (chaînes vides).
 	 *
 	 * @param string|boolean $var Le nom de la variable à chercher, ou false pour récupérer un tableau
@@ -662,12 +663,6 @@ class Request extends StaticClass {
 	 */
 	public static function getParam($var = false, $default = NULL, $ignoreEmpty = true)
 	{
-		// Détection de requête PUT
-		if (!isset(self::$_put))
-		{
-			$_REQUEST = array_merge($_REQUEST, self::_getPut());
-		}
-		
 		// Si pas de variable
 		if (!$var)
 		{
@@ -786,9 +781,90 @@ class Request extends StaticClass {
 	}
 	
 	/**
-	 * Efface une variable en GET et POST
+	 * Définit une variable en POST
 	 *
-	 * @param string|boolean $var le nom de la variable à effacer, ou false pour vider GET ET POST
+	 * @param string|boolean $var le nom de la variable à modifier, ou false pour définir $_POST en entier
+	 * @param mixed $value la valeur à affecter (doit être un tableau si $var vaut false)
+	 * @return void
+	 */
+	public static function setPOST($var, $value)
+	{
+		// Mode
+		if (is_bool($var))
+		{
+			// Ecrasement
+			$_POST = (array)$value;
+		}
+		else
+		{
+			$_POST[$var] = $value;
+		}
+		
+		// Reconstruction
+		$_REQUEST = array_merge($_GET, $_POST, self::_getPut());
+		
+		// Actions
+		Env::callActions('request.changepost');
+	}
+	
+	/**
+	 * Définit une variable en GET
+	 *
+	 * @param string|boolean $var le nom de la variable à modifier, ou false pour définir $_GET en entier
+	 * @param mixed $value la valeur à affecter (doit être un tableau si $var vaut false)
+	 * @return void
+	 */
+	public static function setGET($var, $value)
+	{
+		// Mode
+		if (is_bool($var))
+		{
+			// Ecrasement
+			$_GET = (array)$value;
+		}
+		else
+		{
+			$_GET[$var] = $value;
+		}
+		
+		// Reconstruction
+		$_REQUEST = array_merge($_GET, $_POST, self::_getPut());
+		
+		// Actions
+		Env::callActions('request.changeget');
+	}
+	
+	/**
+	 * Définit une variable en PUT
+	 *
+	 * @param string|boolean $var le nom de la variable à modifier, ou false pour définir $_PUT en entier
+	 * @param mixed $value la valeur à affecter (doit être un tableau si $var vaut false)
+	 * @return void
+	 */
+	public static function setPUT($var, $value)
+	{
+		// Mode
+		if (is_bool($var))
+		{
+			// Ecrasement
+			self::$_put = (array)$value;
+		}
+		else
+		{
+			self::$_put[$var] = $value;
+		}
+		
+		// Reconstruction
+		$_REQUEST = array_merge($_GET, $_POST, self::$_put);
+		
+		// Actions
+		Env::callActions('request.changeput');
+	}
+	
+	/**
+	 * Efface une variable en PUT, POST et GET
+	 *
+	 * @param string|boolean $var le nom de la variable à effacer, ou false pour vider PUT, POST et GET
 	 * @return void
 	 */
 	public static function clearParam($var = false)
@@ -799,13 +875,11 @@ class Request extends StaticClass {
 			// Effacement
 			$_GET = array();
 			$_POST = array();
-			$_REQUEST = array();
 			self::$_put = array();
+			$_REQUEST = array();
 		}
 		else
 		{
-			self::_getPut();
-			
 			// Effacement
 			if (isset($_GET[$var]))
 			{
@@ -826,7 +900,7 @@ class Request extends StaticClass {
 		}
 		
 		// Actions
-		Env::callActions('request.clearparam');
+		Env::callActions('request.changeparam');
 	}
 	
 	/**
@@ -846,12 +920,6 @@ class Request extends StaticClass {
 		}
 		else
 		{
-			// Détection de requête PUT
-			if (!isset(self::$_put))
-			{
-				$_REQUEST = array_merge($_REQUEST, self::_getPut());
-			}
-			
 			// Effacement
 			if (isset($_GET[$var]))
 			{
@@ -876,7 +944,7 @@ class Request extends StaticClass {
 		}
 		
 		// Actions
-		Env::callActions('request.clearget');
+		Env::callActions('request.changeget');
 	}
 	
 	/**
@@ -892,16 +960,10 @@ class Request extends StaticClass {
 		{
 			// Effacement
 			$_POST = array();
-			$_REQUEST = array_merge($_POST, self::_getPut());
+			$_REQUEST = array_merge($_GET, self::_getPut());
 		}
 		else
 		{
-			// Détection de requête PUT
-			if (!isset(self::$_put))
-			{
-				$_REQUEST = array_merge($_REQUEST, self::_getPut());
-			}
-			
 			// Effacement
 			if (isset($_POST[$var]))
 			{
@@ -926,7 +988,7 @@ class Request extends StaticClass {
 		}
 		
 		// Actions
-		Env::callActions('request.clearpost');
+		Env::callActions('request.changepost');
 	}
 	
 	/**
@@ -946,12 +1008,6 @@ class Request extends StaticClass {
 		}
 		else
 		{
-			// Détection de requête PUT
-			if (!isset(self::$_put))
-			{
-				$_REQUEST = array_merge($_REQUEST, self::_getPut());
-			}
-			
 			// Effacement
 			if (isset(self::$_put[$var]))
 			{
@@ -975,7 +1031,7 @@ class Request extends StaticClass {
 		}
 		
 		// Actions
-		Env::callActions('request.clearput');
+		Env::callActions('request.changeput');
 	}
 	
 	/**
@@ -1011,6 +1067,9 @@ class Request extends StaticClass {
 					{
 						self::$_put = array_map('stripslashes_deep', self::$_put);
 					}
+					
+					// Mise à jour de $_REQUEST
+					$_REQUEST = array_merge($_REQUEST, self::$_put);
 				}
 			}
 		}

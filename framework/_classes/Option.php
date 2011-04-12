@@ -15,6 +15,11 @@ class Option extends BaseClass
 	 */
 	protected $_user;
 	/**
+	 * Valeur traitée de l'option
+	 * @var mixed
+	 */
+	protected $_value;
+	/**
 	 * Table de référence
 	 * @var string
 	 */
@@ -27,7 +32,7 @@ class Option extends BaseClass
 	
 	/**
 	 * Renvoie l'objet utilisateur de rattachement
-	 * 
+	 *
 	 * @return User|boolean l'objet utilisateur ou false si aucun
 	 */
 	public function getUser()
@@ -42,30 +47,88 @@ class Option extends BaseClass
 	
 	/**
 	 * Renvoie la valeur de l'option
-	 * 
+	 *
 	 * @param mixed $default la valeur par défaut si l'option n'existe pas (facultatif, défaut : NULL)
 	 * @return mixed la valeur trouvée, ou $default
 	 */
 	public function getValue($default = NULL)
 	{
-		return $this->get('value', $default);
+		if (!isset($this->_value))
+		{
+			$this->_value = $this->get('value');
+			if (!is_null($this->_value))
+			{
+				switch ($this->get('type'))
+				{
+					case 'boolean';
+						$this->_value = ($this->_value === 'true');
+						break;
+					
+					case 'int':
+						$this->_value = intval($this->_value);
+						break;
+					
+					case 'float':
+						$this->_value = floatval($this->_value);
+						break;
+					
+					case 'object':
+						$this->_value = json_decode($this->_value);
+						break;
+					
+					case 'array':
+						$this->_value = json_decode($this->_value, true);
+						break;
+				}
+			}
+		}
+		
+		return is_null($this->_value) ? $default : $this->_value;
 	}
 	
 	/**
 	 * Mise à jour de la valeur de l'option
-	 * 
+	 *
 	 * @param mixed $value la valeur à affecter
 	 * @return void
 	 */
 	public function setValue($value)
 	{
-		$this->set('value', $value);
+		// Cache
+		$this->_value = $value;
+		
+		// Conversion et mise à jour
+		if (is_array($value))
+		{
+			$this->set('type', 'array');
+			$this->set('value', json_encode($value));
+		}
+		elseif (is_object($value))
+		{
+			$this->set('type', 'object');
+			$this->set('value', json_encode($value));
+		}
+		elseif (is_float($value))
+		{
+			$this->set('type', 'float');
+			$this->set('value', (string)$value);
+		}
+		elseif (is_int($value))
+		{
+			$this->set('type', 'int');
+			$this->set('value', (string)$value);
+		}
+		elseif (is_bool($value))
+		{
+			$this->set('type', 'boolean');
+			$this->set('value', $value ? 'true' : 'false');
+		}
 		$this->save();
 	}
 	
 	/**
 	 * Obtention d'une option par son id
-	 * 
+	 *
 	 * @param int $id l'identifiant du fichier
 	 * @return Option|boolean l'objet option si trouvé, ou false si inexistant
 	 */
@@ -86,11 +149,11 @@ class Option extends BaseClass
 	
 	/**
 	 * Obtention d'option par son nom
-	 * 
+	 *
 	 * @param string $name le nom de l'option
-	 * @param int $id_user un identifiant d'utilisateur pour obtenir l'option liée à cet utilisateur, 
+	 * @param int $id_user un identifiant d'utilisateur pour obtenir l'option liée à cet utilisateur,
 	 * false pour une option générale ou NULL pour ne pas filtrer (facultatif, défaut : NULL)
-	 * 
+	 *
 	 * @return array la liste des options correspondantes
 	 */
 	public static function getByName($name, $id_user = NULL)
@@ -116,7 +179,7 @@ class Option extends BaseClass
 	
 	/**
 	 * Charge le cache des options globales
-	 * 
+	 *
 	 * @return void
 	 */
 	protected static function _loadCache()
@@ -139,7 +202,7 @@ class Option extends BaseClass
 	
 	/**
 	 * Obtention de la valeur d'une option par son nom (renvoie la première valeur trouvée)
-	 * 
+	 *
 	 * @param string $name le nom de l'option
 	 * @param mixed $default la valeur par défaut si l'option n'existe pas (facultatif, défaut : NULL)
 	 * @return mixed la valeur trouvée, ou $default
@@ -154,7 +217,7 @@ class Option extends BaseClass
 	
 	/**
 	 * Affectation de la valeur d'une option par son nom (renvoie la première valeur trouvée)
-	 * 
+	 *
 	 * @param string $name le nom de l'option
 	 * @param mixed $value la valeur à affecter
 	 * @return void
@@ -179,7 +242,7 @@ class Option extends BaseClass
 	
 	/**
 	 * Obtention des options d'un utilisateur
-	 * 
+	 *
 	 * @param int $id_user l'id de l'utilisateur
 	 * @return array la liste des options trouvées
 	 */

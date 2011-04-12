@@ -7,9 +7,10 @@ interface iRequestHandler {
 	 * Teste si le handler gère le type de route en cours
 	 * 
 	 * @param iRequestRoute la route en cours de traitement
+	 * @param boolean $internalRedirect indique s'il s'agit d'une redirection interne (facultatif, défaut : false)
 	 * @return iRequestHandler|boolean une instance de la classe si elle peut gérer le route, false sinon
 	 */
-	public static function handles($route);
+	public static function handles($route, $internalRedirect = false);
 	
 	/**
 	 * Renvoie l'objet route de rattachement

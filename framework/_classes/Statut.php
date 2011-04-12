@@ -7,13 +7,13 @@
 /**
  * Classe de gestion des statuts utilisateurs - fonctions génériques
  */
-class Statut extends BaseClass
+class Status extends BaseClass
 {
 	/**
 	 * Table de référence
 	 * @var string
 	 */
-	public static $table = 'statuts';
+	public static $table = 'status';
 
 	/**
 	 * Obtention d'un statut par son id
@@ -21,15 +21,15 @@ class Statut extends BaseClass
 	 * @param int $id l'id du statut voulu
 	 * @return Vendeur le statut désiré, ou false si inexistant
 	 */
-	public static function getStatut($id)
+	public static function getStatus($id)
 	{
 		// Récupération
-		$result = Database::get(self::$server)->query('SELECT * FROM `'.self::$table.'` WHERE `id_statut`=?', intval($id));
+		$result = Database::get(self::$server)->query('SELECT * FROM `'.self::$table.'` WHERE `id_status`=?', intval($id));
 		
 		// Si trouvé
 		if ($result->count() > 0)
 		{
-			return Factory::getInstance('Statut', $result[0]);
+			return Factory::getInstance('Status', $result[0]);
 		}
 		
 		// Renvoi par défaut
@@ -44,6 +44,6 @@ class Statut extends BaseClass
 	public static function getList()
 	{
 		$result = Database::get(self::$server)->query('SELECT * FROM `'.self::$table.'`');
-		return $result->castAs('Statut');
+		return $result->castAs('Status');
 	}
 }
